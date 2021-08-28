@@ -38,5 +38,3 @@ def queryDB():
     for val in res:
         res_arr.append(val)
     return jsonify(res_arr)
-
-app.run(debug = True)
