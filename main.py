@@ -1,4 +1,4 @@
-from flask import Flask, jsonify
+from flask import Flask, jsonify, request
 import mysql.connector
 import requests
 
@@ -39,3 +39,6 @@ def returnChats():
     for val in res:
         res_arr.append(val)
     return jsonify(res_arr)
+
+if __name__ == "__main__":
+    app.run(debug=True)
