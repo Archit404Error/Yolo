@@ -31,9 +31,7 @@ def createEvent():
 
 @app.route('/getChats')
 def returnChats():
-    sql = 'SELECT * FROM Chats WHERE Event=\"'
-    event_name = list(request.args)[0]
-    sql += event_name + "\""
+    sql = 'SELECT * FROM Chats WHERE id={}'.format(list(request.args)[0])
     cursor.execute(sql)
     res = cursor.fetchall()
     res_arr = []
