@@ -24,15 +24,16 @@ def queryDB():
 
 @app.route('/addEvent')
 def createEvent():
-    sql = "INSERT into Events(id, image, title, description, location, other) VALUES {}, {}, {}, {}, {}, {}"
     params = list(request.args)
-    sql.format(sql.format(params[0], params[1], params[2], params[3], params[4], params[5]))
+    sql = "INSERT into Events(id, image, title, description, location, other) VALUES {}, {}, {}, {}, {}, {}".format(params[0], params[1], params[2], params[3], params[4], params[5])
     cursor.execute(sql)
+    return jsonify(True)
 
 @app.route('/getChats')
 def returnChats():
-    sql = "SELECT * FROM Chats WHERE Event={}"
-    sql.format(list(request.args)[0])
+    sql = 'SELECT * FROM Chats WHERE Event=\"'
+    event_name = list(request.args)[0]
+    sql += event_name + "\""
     cursor.execute(sql)
     res = cursor.fetchall()
     res_arr = []
