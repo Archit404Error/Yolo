@@ -8,7 +8,8 @@ mydb = mysql.connector.connect(
   host="sql5.freesqldatabase.com",
   user="sql5432499",
   password="Lp5Tw8l2GR",
-  database="sql5432499"
+  database="sql5432499",
+  autocommit = True
  )
 
 cursor = mydb.cursor()
