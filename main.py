@@ -23,6 +23,12 @@ def queryDB():
         res_arr.append(val)
     return jsonify(res_arr)
 
+@app.route('/queryId')
+def idRes():
+    cursor.execute("SELECT COUNT(id) FROM Events")
+    res = cursor.fetchall()
+    return jsonify(res[0][0])
+
 @app.route('/addEvent')
 def createEvent():
     params = list(request.args)
