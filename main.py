@@ -46,5 +46,42 @@ def returnChats():
         res_arr.append(val)
     return jsonify(res_arr)
 
+@app.route('/sendMessage')
+def sendMess():
+    params = list(request.args)
+    message = params[0]
+    sender = params[1]
+    toAdd = sender + ":" + message
+    #Add UPDATE statement here
+    sql = ""
+    cursor.execute(sql)
+    return jsonify("OK")
+
+@app.route('/updateEventPreference')
+def changeEvent():
+    params = list(request.args)
+    user = params[0]
+    operation = params[1]
+    initial_state = params[2]
+    event_id = params[3]
+
+    cursor.execute("SELECT " + initial_state + "Events from Users WHERE Name=\'" + user + "\'")
+    initial_list = list(cursor.fetchall()[0])
+    initial_list[0] = initial_list[0][:-1]
+    initial_list[len(initial_list) - 1] = initial_list[len(initial_list) - 1][1:]
+    print(initial_list)
+    initial_list.remove(str(event_id))
+
+    cursor.execute("SELECT " + operation + "Events from Users WHERE Name=\'" + user + "\'")
+    mutated_list = list(cursor.fetchall()[0])
+    mutated_list.append(str(event_id))
+
+    initial_list = str(initial_list.join(', '))
+    mutated_list = str(mutated_list.join(', '))
+
+    print(initial_list)
+    print(mutated_list)
+    return jsonify("OK")
+
 if __name__ == "__main__":
     app.run(debug=True)
