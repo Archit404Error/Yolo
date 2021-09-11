@@ -32,8 +32,11 @@ def idRes():
 @app.route('/addEvent')
 def createEvent():
     params = list(request.args)
-    sql = "INSERT into Events(image, title, description, location, other) VALUES {}, {}, {}, {}, {}".format(params[0], params[1], params[2], params[3], params[4])
+    sql = "INSERT into Events(image, title, description, location, other) VALUES ({}, {}, {}, {}, {})".format(params[0], params[1], params[2], params[3], params[4])
     cursor.execute(sql)
+    #need to make chat id auto increment
+    #need to get chat creator as param
+    chat_sql = "INSERT INTO Chats(Event, Messages, Members) VALUES ({}, {}, {})".format(params[1], "Chat Created", "Archit")
     return jsonify(True)
 
 @app.route('/getChats')
