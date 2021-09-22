@@ -86,5 +86,15 @@ def changeEvent():
     print(mutated_list)
     return jsonify("OK")
 
+@app.route('/getUser')
+def get_user():
+    params = list(request.args)
+    id = params[0]
+
+    sql = "SELECT * FROM Users WHERE id=" + id
+    cursor.execute(sql)
+    res = list(cursor.fetchall())[0]
+    return(jsonify(res))
+
 if __name__ == "__main__":
     app.run(debug=True)
