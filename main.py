@@ -106,7 +106,7 @@ def login():
         return jsonify(success = False)
     return jsonify(success = True, user_data = res[0])
 
-@app.route('addUser')
+@app.route('/addUser')
 def insert_user():
     params = list(request.args)
     name = params[0]
