@@ -94,7 +94,21 @@ def get_user():
     sql = "SELECT * FROM Users WHERE id=" + id
     cursor.execute(sql)
     res = list(cursor.fetchall())[0]
-    return(jsonify(res))
+    return jsonify(res)
+
+@app.route('/login')
+def login():
+    params = list(request.args)
+    username = params[0]
+    password = params[1]
+
+    sql = "SELECT * FROM Users WHERE Username=\'{}\' AND Password=\'{}\'".format(username, password)
+    cursor.execute(sql)
+    res = list(cursor.fetchall())
+
+    if len(res) == 0:
+        return jsonify(success = False)
+    return jsonify(success = True, user_data = res[0])
 
 if __name__ == "__main__":
     app.run(debug=True)
