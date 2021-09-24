@@ -14,10 +14,13 @@ mydb = mysql.connector.connect(
 
 cursor = mydb.cursor()
 
+def exec_sql(sql):
+    cursor.execute(sql)
+    return cursor.fetchall()
+
 @app.route('/query')
 def queryDB():
-    cursor.execute("SELECT * FROM Events")
-    res = cursor.fetchall()
+    res = exec_sql("SELECT * FROM Events")
     res_arr = []
     for val in res:
         res_arr.append(val)
@@ -25,9 +28,7 @@ def queryDB():
 
 @app.route('/queryId')
 def idRes():
-    cursor.execute("SELECT COUNT(id) FROM Events")
-    res = cursor.fetchall()
-    return jsonify(res[0][0])
+    return jsonify(exec_sql("SELECT COUNT(id) FROM Events")[0][0])
 
 @app.route('/addEvent')
 def createEvent():
@@ -41,9 +42,7 @@ def createEvent():
 
 @app.route('/getChats')
 def returnChats():
-    sql = 'SELECT * FROM Chats WHERE id={}'.format(list(request.args)[0])
-    cursor.execute(sql)
-    res = cursor.fetchall()
+    res = exec_sql('SELECT * FROM Chats WHERE id={}'.format(list(request.args)[0]))
     res_arr = []
     for val in res:
         res_arr.append(val)
@@ -68,8 +67,7 @@ def changeEvent():
     initial_state = params[2]
     event_id = params[3]
 
-    cursor.execute("SELECT " + initial_state + "Events from Users WHERE Name=\'" + user + "\'")
-    initial_list = list(cursor.fetchall()[0])
+    initial_list = list(exec_sql("SELECT " + initial_state + "Events from Users WHERE Name=\'" + user + "\'")[0])
     initial_list[0] = initial_list[0][:-1]
     initial_list[len(initial_list) - 1] = initial_list[len(initial_list) - 1][1:]
     print(initial_list)
@@ -90,25 +88,32 @@ def changeEvent():
 def get_user():
     params = list(request.args)
     id = params[0]
-
-    sql = "SELECT * FROM Users WHERE id=" + id
-    cursor.execute(sql)
-    res = list(cursor.fetchall())[0]
+    res = list(exec_sql("SELECT * FROM Users WHERE id=" + id))[0]
     return jsonify(res)
 
-@app.route('/login')
+
+@app.route('/auth')
 def login():
+    params = list(request.args)
     params = list(request.args)
     username = params[0]
     password = params[1]
 
-    sql = "SELECT * FROM Users WHERE Username=\'{}\' AND Password=\'{}\'".format(username, password)
-    cursor.execute(sql)
-    res = list(cursor.fetchall())
+    res = list(exec_sql("SELECT * FROM Users WHERE Username=\'{}\' AND Password=\'{}\'".format(username, password)))
 
     if len(res) == 0:
+        #False success treated as register
         return jsonify(success = False)
     return jsonify(success = True, user_data = res[0])
+
+@app.route('addUser')
+def insert_user():
+    params = list(request.args)
+    name = params[0]
+    username = params[1]
+    password = params[2]
+
+    cursor.execute("INSERT INTO Users(Id, Username, Password, Name, RejectedEvents, AcceptedEvents, PendingEvents) VALUES NULL, {}, {}, {}, \'\', \'\', \'\'".format(username, password, name))
 
 if __name__ == "__main__":
     app.run(debug=True)
