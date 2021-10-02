@@ -53,10 +53,11 @@ def sendMess():
     params = list(request.args)
     message = params[0]
     sender = params[1]
-    toAdd = sender + ":" + message
-    #Add UPDATE statement here
-    sql = ""
-    cursor.execute(sql)
+    chat = params[2]
+    old_mess = exec_sql("SELECT Messages FROM Chats WHERE id=" + chat)[0][0]
+    print(old_mess)
+    to_add = old_mess + "\n" + sender + ": " + message
+    cursor.execute("UPDATE Chats SET Messages=\'" + to_add + "\' WHERE id=" + chat)
     return jsonify("OK")
 
 @app.route('/updateEventPreference')
@@ -109,11 +110,16 @@ def login():
 @app.route('/addUser')
 def insert_user():
     params = list(request.args)
+    print(params)
     name = params[0]
     username = params[1]
     password = params[2]
+    photo = params[3]
 
-    cursor.execute("INSERT INTO Users(Id, Username, Password, Name, RejectedEvents, AcceptedEvents, PendingEvents) VALUES NULL, {}, {}, {}, \'\', \'\', \'\'".format(username, password, name))
+    with open(photo, 'rb') as file:
+        binary_data = file.read()
+
+    cursor.execute("INSERT INTO Users(Id, Username, Password, Name, RejectedEvents, AcceptedEvents, PendingEvents, photo) VALUES NULL, {}, {}, {}, \'\', \'\', \'\', {})".format(username, password, name, binary_data))
 
 if __name__ == "__main__":
     app.run(debug=True)
