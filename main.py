@@ -44,7 +44,7 @@ def returnChats():
     res_arr = []
     for val in res:
         res_arr.append(val)
-    return jsonify(res_arr)
+    return jsonify(res_arr[0])
 
 @app.route('/sendMessage')
 def sendMess():
