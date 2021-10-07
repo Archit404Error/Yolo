@@ -1,6 +1,7 @@
 from flask import Flask, jsonify, request
 import mysql.connector
 import requests
+import json
 
 app = Flask(__name__)
 
@@ -55,7 +56,8 @@ def sendMess():
     old_mess = exec_sql("SELECT Messages FROM Chats WHERE id=" + chat)[0][0]
     print(old_mess)
     to_add = old_mess + "\n" + sender + ": " + message
-    cursor.execute("UPDATE Chats SET Messages=\'" + to_add + "\' WHERE id=" + chat)
+    to_add = json.dumps(to_add)
+    cursor.execute('UPDATE Chats SET Messages=' + to_add + ' WHERE id=' + chat)
     return jsonify("OK")
 
 @app.route('/updateEventPreference')
