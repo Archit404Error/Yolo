@@ -1,4 +1,5 @@
 from flask import Flask, jsonify, request
+from geopy.geocoders import Nominatim
 import mysql.connector
 import requests
 import json
@@ -34,10 +35,26 @@ def idRes():
 @app.route('/addEvent')
 def createEvent():
     params = list(request.args)
-    sql = "INSERT into Events(image, title, description, location, other) VALUES ({}, {}, {}, {}, {})".format(params[0], params[1], params[2], params[3], params[4])
+    locator = Nominatim(user_agent="myGeocoder")
+    location = locator.geocode(params[3])
+    sql = "INSERT into Events(image, title, description, location, latitutde, longitude, other) VALUES ({}, {}, {}, {}, {}, {}, {})".format(params[0], params[1], params[2], params[3], location.latitude, location.longitude, params[4])
     cursor.execute(sql)
     chat_sql = "INSERT INTO Chats(Event, Messages, Members) VALUES ({}, {}, {})".format(params[1], "Server: Chat Created", "Archit")
     return jsonify(True)
+
+@app.route('/distance')
+def calcDistance():
+    params = list(request.args)
+    user_lat = params[0]
+    user_long = params[1]
+    event_id = params[2]
+    event_lat, event_long = exec_sql("SELECT latitude, longitude FROM Events WHERE id=" + event_id)[0]
+    api_url = f"""http://router.project-osrm.org/route/v1/car/{user_long},{user_lat};{event_long},{event_lat}"""
+    res_json = requests.get(api_url).json()
+    dist = float(res_json["routes"][0]["legs"][0]["distance"])
+    dist /= 1000
+    dist *= 0.6
+    return jsonify(distance = dist)
 
 @app.route('/getChats')
 def returnChats():
