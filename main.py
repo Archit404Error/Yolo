@@ -109,6 +109,12 @@ def get_user():
     res = list(exec_sql("SELECT * FROM Users WHERE id=" + id))[0]
     return jsonify(res)
 
+@app.route('/friendSuggestions')
+def get_friend_suggestions():
+    params = list(request.args)
+    id = params[0]
+    res = list(exec_sql("SELECT friendSuggestions from Users WHERE id=" + id))[0]
+    return jsonify(suggestions = res)
 
 @app.route('/auth')
 def login():
