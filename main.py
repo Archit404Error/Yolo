@@ -133,7 +133,6 @@ def login():
 @app.route('/addUser')
 def insert_user():
     params = list(request.args)
-    print(params)
     name = params[0]
     username = params[1]
     password = params[2]
@@ -143,6 +142,23 @@ def insert_user():
         binary_data = file.read()
 
     cursor.execute("INSERT INTO Users(Id, Username, Password, Name, RejectedEvents, AcceptedEvents, PendingEvents, photo) VALUES NULL, {}, {}, {}, \'\', \'\', \'\', {})".format(username, password, name, binary_data))
+
+@app.route('/friendRequest')
+def send_req():
+    params = list(request.args)
+    id_to_send = params[0]
+    friending = eval(params[1])
+    id_from = params[2]
+    curr_pending = exec_sql(f"SELECT FriendReqs FROM Users WHERE id={id_to_send}")[0][0]
+    curr_pending = curr_pending.split(", ")
+    if curr_pending == ['']:
+        curr_pending = []
+    if friending:
+        curr_pending.append(id_from)
+    else:
+        curr_pending.remove(id_from)
+    cursor.execute(f"UPDATE Users SET FriendReqs=\'{', '.join(curr_pending)}\' WHERE id={id_to_send}")
+    return jsonify(friends=curr_pending)
 
 if __name__ == "__main__":
     app.run(debug=True)
