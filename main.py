@@ -147,7 +147,7 @@ def insert_user():
 def send_req():
     params = list(request.args)
     id_to_send = params[0]
-    friending = eval(params[1])
+    friending = eval(params[1].capitalize())
     id_from = params[2]
     curr_pending = exec_sql(f"SELECT FriendReqs FROM Users WHERE id={id_to_send}")[0][0]
     curr_pending = curr_pending.split(", ")
