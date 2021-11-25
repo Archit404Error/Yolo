@@ -32,15 +32,20 @@ def queryDB():
 def idRes():
     return jsonify(exec_sql("SELECT COUNT(id) FROM Events")[0][0])
 
-@app.route('/addEvent')
+@app.route('/addEvent', methods=["GET", "POST"])
 def createEvent():
+    json_data = request.get_json()
+    print(json_data)
+    '''
     params = list(request.args)
-    locator = Nominatim(user_agent="myGeocoder")
+    locator = Nominatim(user_agent="event_app_test")
     location = locator.geocode(params[3])
-    sql = "INSERT into Events(image, title, description, location, latitutde, longitude, other) VALUES ({}, {}, {}, {}, {}, {}, {})".format(params[0], params[1], params[2], params[3], location.latitude, location.longitude, params[4])
+    print(params[0])
+    sql = "INSERT into Events(image, title, description, location, tags latitutde, longitude, other) VALUES ({}, {}, {}, {}, {}, {}, {}, {})".format(params[0], params[1], params[2], params[3], params[4], location.latitude, location.longitude, params[5])
     cursor.execute(sql)
     chat_sql = "INSERT INTO Chats(Event, Messages, Members) VALUES ({}, {}, {})".format(params[1], "Server: Chat Created", "Archit")
-    return jsonify(True)
+    '''
+    return jsonify(data=json_data)
 
 @app.route('/distance')
 def calcDistance():
