@@ -35,16 +35,12 @@ def idRes():
 @app.route('/addEvent', methods=["GET", "POST"])
 def createEvent():
     json_data = request.get_json()
-    print(json_data)
-    '''
-    params = list(request.args)
     locator = Nominatim(user_agent="event_app_test")
-    location = locator.geocode(params[3])
-    print(params[0])
-    sql = "INSERT into Events(image, title, description, location, tags latitutde, longitude, other) VALUES ({}, {}, {}, {}, {}, {}, {}, {})".format(params[0], params[1], params[2], params[3], params[4], location.latitude, location.longitude, params[5])
+    location = locator.geocode(json_data["location"])
+    sql = "INSERT into Events(image, title, description, location, tags latitutde, longitude, other) VALUES ({}, {}, {}, {}, {}, {}, {}, {})".format(json_data["image"], json_data["title"], json_data["description"], json_data["location"], json_data["tags"], location.latitude, location.longitude, json_data["other"])
     cursor.execute(sql)
     chat_sql = "INSERT INTO Chats(Event, Messages, Members) VALUES ({}, {}, {})".format(params[1], "Server: Chat Created", "Archit")
-    '''
+
     return jsonify(data=json_data)
 
 @app.route('/distance')
