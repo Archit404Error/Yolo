@@ -37,14 +37,14 @@ def createEvent():
     json_data = request.get_json()
     locator = Nominatim(user_agent="event_app_test")
     location = locator.geocode(json_data["location"])
-    sql = "INSERT into Events(image, title, description, location, tags latitutde, longitude, other) VALUES (\"{}\", \"{}\", \"{}\", \"{}\", \"{}\", {}, {}, \"{}\")".format(json_data["image"], json_data["title"], json_data["description"], json_data["location"], json_data["tags"], location.latitude, location.longitude, json_data["other"])
+    sql = "INSERT into Events(image, title, description, location, tags, latitutde, longitude, other) VALUES (\"{}\", \"{}\", \"{}\", \"{}\", \"{}\", {}, {}, \"{}\")".format(json_data["image"], json_data["title"], json_data["description"], json_data["location"], json_data["tags"], location.latitude, location.longitude, json_data["other"])
     try:
         cursor.execute(sql)
         chat_sql = "INSERT INTO Chats(Event, Messages, Members) VALUES ({}, {}, {})".format(json_data["title"], "Server: Chat Created", "Archit")
         print(chat_sql)
         cursor.execute(chat_sql)
     except:
-        print(sql)
+        print("sql error")
 
     return jsonify(data=json_data)
 
