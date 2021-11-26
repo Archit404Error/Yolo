@@ -40,7 +40,7 @@ def createEvent():
     sql = "INSERT into Events(image, title, description, location, tags, latitude, longitude, other) VALUES (\"{}\", \"{}\", \"{}\", \"{}\", \"{}\", {}, {}, \"{}\")".format(json_data["image"], json_data["title"], json_data["description"], json_data["location"], json_data["tags"], location.latitude, location.longitude, json_data["other"])
     try:
         cursor.execute(sql)
-        chat_sql = "INSERT INTO Chats(Event, Messages, Members) VALUES ({}, {}, {})".format(json_data["title"], "Server: Chat Created", "Archit")
+        chat_sql = "INSERT INTO Chats(Event, Messages, Members) VALUES (\"{}\", \"{}\", \"{}\")".format(json_data["title"], "Server: Chat Created", "Archit")
         print(chat_sql)
         cursor.execute(chat_sql)
     except:
