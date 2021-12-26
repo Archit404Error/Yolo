@@ -51,6 +51,8 @@ app.get('/chat/:id', (req, res) => {
 app.post('/auth', bp.json(), (req, res) => {
     const username = req.body.username;
     const password = req.body.password;
+    console.log(username);
+    console.log(password);
     if (!username || !password) return res.status(500).send("Authentication Error")
     userCollection.findOne({"username" : username, "password" : password}, (err, result) => {
         if (err) return res.status(500).send(err);
