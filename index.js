@@ -48,11 +48,27 @@ app.get('/userChats/:id', async (req, res) => {
  * Returns JSON data of chat with a given id
  */
 app.get('/chat/:id', (req, res) => {
-    if (!req.params.id) return res.status(500).send(error);
+    if (!req.params.id) return res.status(500).send("ID Error");
     chatCollection.findOne({"_id" : new ObjectId(req.params.id)}, (error, result) => {
         if (error) return res.status(500).send(error);
         res.send(result);
     })
+})
+
+/**
+ * Returns a chat's title based on its corresponding event
+ */
+app.get('/chatDetails/:id', async (req, res) => {
+    if (!req.params.id) return res.status(500).send("ID Error");
+    const joined = await chatCollection.aggregate([{
+        $lookup: {
+            from: "Events",
+            localField: "event",
+            foreignField: "_id",
+            as: "details"
+        }
+    }]).toArray()
+    res.send(joined)
 })
 
 /** 
@@ -115,14 +131,14 @@ app.post('/create', bp.json(), (req, res) => {
             "description" : desc,
             "location" : loc,
             "tags" : tags,
-            "latitue" : latitude,
+            "latitude" : latitude,
             "longitude" : longitude,
             "other" : other,
         })
         .then(inserted => {
             chatCollection.insertOne({
                 "event" : inserted.insertedId,
-                "meesages" : [],
+                "messages" : [],
                 "members" : []
             })
         })
