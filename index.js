@@ -27,9 +27,20 @@ app.get('/event/:id', (req, res) => {
  * Returns JSON data of user with a given id
  */
 app.get('/user/:id', (req, res) => {
-    if (!req.params.id) return res.status(500).send(error);
+    if (!req.params.id) return res.status(500).send("ID Error");
     userCollection.findOne({"_id" : new ObjectId(req.params.id)}, (error, result) => {
         if (error) return res.status(500).send(error);
+        res.send(result);
+    })
+})
+
+/**
+ * Loads a user's id
+ */
+app.get('/userChats/:id', (req, res) => {
+    if (!req.params.id) return res.status(500).send("ID Error");
+    chatCollection.find({"members" : new ObjectId(req.params.id)}, (err, result) => {
+        if (err) return res.status(500).send(err);
         res.send(result);
     })
 })
@@ -51,8 +62,6 @@ app.get('/chat/:id', (req, res) => {
 app.post('/auth', bp.json(), (req, res) => {
     const username = req.body.username;
     const password = req.body.password;
-    console.log(username);
-    console.log(password);
     if (!username || !password) return res.status(500).send("Authentication Error")
     userCollection.findOne({"username" : username, "password" : password}, (err, result) => {
         if (err) return res.status(500).send(err);
