@@ -134,6 +134,7 @@ app.post('/create', bp.json(), (req, res) => {
             "latitude" : latitude,
             "longitude" : longitude,
             "other" : other,
+            "attendees": [],
         })
         .then(inserted => {
             chatCollection.insertOne({
