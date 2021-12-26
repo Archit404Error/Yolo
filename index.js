@@ -186,20 +186,21 @@ app.post('/eventRSVP', bp.json(), (req, res) => {
         {"_id" : userId},
         {$pull : { "pendingEvents" : eventId }}
     )
-    let correspAttr = "";
     if (action === "accepted") {
-        correspAttr = "acceptedEvents";
+        userCollection.updateOne(
+            {"_id" : userId},
+            {$push : { "acceptedEvents" : eventId }}
+        )
         eventCollection.updateOne(
             {"_id" : eventId},
             {$push : { "attendees" : userId }}
         )
     } else {
-        correspAttr = "rejectedEvents";
+        userCollection.updateOne(
+            {"_id" : userId},
+            {$push : { "rejectedEvents" : eventId }}
+        )
     }
-    userCollection.updateOne(
-        {"_id" : userId},
-        {$push : { correspAttr : eventId }}
-    )
     res.send("OK")
 })
 
