@@ -200,6 +200,7 @@ app.post('/eventRSVP', bp.json(), (req, res) => {
         {"_id" : userId},
         {$push : { correspAttr : eventId }}
     )
+    res.send("OK")
 })
 
 app.use(function (req, res, next){
