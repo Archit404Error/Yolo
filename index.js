@@ -35,14 +35,13 @@ app.get('/user/:id', (req, res) => {
 })
 
 /**
- * Loads a user's id
+ * Loads all chats for a user based on user's id
  */
-app.get('/userChats/:id', (req, res) => {
+app.get('/userChats/:id', async (req, res) => {
     if (!req.params.id) return res.status(500).send("ID Error");
-    chatCollection.find({"members" : new ObjectId(req.params.id)}, (err, result) => {
-        if (err) return res.status(500).send(err);
-        res.send(result);
-    })
+    const found = chatCollection.find({"members" : new ObjectId(req.params.id)});
+    if ((await found.count()) == 0) return res.send([])
+    res.send(await found.toArray())
 })
 
 /** 
