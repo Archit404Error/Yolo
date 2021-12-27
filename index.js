@@ -56,7 +56,7 @@ app.get('/chat/:id', (req, res) => {
 })
 
 /**
- * Returns a chat's title based on its corresponding event
+ * Returns event details based on a chat's corresponding event
  */
 app.get('/chatDetails/:id', async (req, res) => {
     if (!req.params.id) return res.status(500).send("ID Error");
@@ -74,6 +74,32 @@ app.get('/chatDetails/:id', async (req, res) => {
         }
     ]).toArray()
     res.send(joined)
+})
+
+/**
+ * Returns user details of all participants in a chat
+ */
+app.get('/chatUsers/:id', async (req, res) => {
+    if (!req.params.id) return res.status(500).send("Invalid chat id");
+    const result = await chatCollection.aggregate([
+        {
+            $lookup: {
+                from: "Users",
+                localField: "members",
+                foreignField: "_id",
+                as: "memberDetails"
+            }
+        },
+        {
+            $project: {
+                "memberDetails._id": 1,
+                "memberDetails.name": 1,
+                "memberDetails.profilePic": 1
+            }
+        },
+        { $match: { "_id" : new ObjectId(req.params.id) } }
+    ]).toArray();
+    res.send(result);
 })
 
 /** 
