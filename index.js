@@ -70,6 +70,9 @@ app.get('/chatDetails/:id', async (req, res) => {
             }
         },
         {
+            $unwind: "$eventDetails"
+        },
+        {
             $match: { "_id" : new ObjectId(req.params.id) }
         }
     ]).next();
