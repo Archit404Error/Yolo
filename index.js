@@ -114,6 +114,7 @@ app.post('/auth', bp.json(), (req, res) => {
     if (!username || !password) return res.status(500).send("Authentication Error")
     userCollection.findOne({"username" : username, "password" : password}, (err, result) => {
         if (err) return res.status(500).send(err);
+        if (result == null) return res.send({});
         res.send(result);
     });
 })
@@ -136,7 +137,12 @@ app.post('/register', bp.json(), (req, res) => {
         "friendReqs" : [],
         "profilePic" : "https://firebasestorage.googleapis.com/v0/b/eventapp-73ba7.appspot.com/o/Profiles%2Fdefault_user.png?alt=media&token=c4f609d3-a714-4d70-8383-ac59368ac640"
     })
-    res.send("OK")
+    .then(doc => {
+        userCollection.findOne({"_id" : doc.insertedId}, (err, result) => {
+            if (err) return res.status(500).send(err);
+            res.send(result);
+        })
+    })
 })
 
 /**
