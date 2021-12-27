@@ -72,7 +72,7 @@ app.get('/chatDetails/:id', async (req, res) => {
         {
             $match: { "_id" : new ObjectId(req.params.id) }
         }
-    ]).toArray()
+    ]).next();
     res.send(joined)
 })
 
@@ -98,7 +98,7 @@ app.get('/chatUsers/:id', async (req, res) => {
             }
         },
         { $match: { "_id" : new ObjectId(req.params.id) } }
-    ]).toArray();
+    ]).next();
     res.send(result);
 })
 
