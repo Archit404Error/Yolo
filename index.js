@@ -206,10 +206,18 @@ app.post('/sendMessage', bp.json(), (req, res) => {
 app.post('/friendReq', bp.json(), (req, res) => {
     const senderId = req.body.sender;
     const receiverId = req.body.receiver;
-    userCollection.updateOne(
-        {"_id" : new ObjectId(receiverId)},
-        {$push : { "friendReqs" : new ObjectId(senderId) }}
-    )
+    const wantToFriend = req.body.wantToFriend;
+    if (wantToFriend) {
+        userCollection.updateOne(
+            {"_id" : new ObjectId(receiverId)},
+            {$push : { "friendReqs" : new ObjectId(senderId) }}
+        )
+    } else {
+        userCollection.updateOne(
+            {"_id" : new ObjectId(receiverId)},
+            {$pull : { "friendReqs" : new ObjectId(senderId) }}
+        )
+    }
     res.send("OK")
 })
 
