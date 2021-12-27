@@ -114,6 +114,7 @@ app.post('/auth', bp.json(), (req, res) => {
     if (!username || !password) return res.status(500).send("Authentication Error")
     userCollection.findOne({"username" : username, "password" : password}, (err, result) => {
         if (err) return res.status(500).send(err);
+        if (result == null) return res.send({});
         res.send(result);
     });
 })
