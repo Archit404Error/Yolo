@@ -60,14 +60,19 @@ app.get('/chat/:id', (req, res) => {
  */
 app.get('/chatDetails/:id', async (req, res) => {
     if (!req.params.id) return res.status(500).send("ID Error");
-    const joined = await chatCollection.aggregate([{
-        $lookup: {
-            from: "Events",
-            localField: "event",
-            foreignField: "_id",
-            as: "details"
+    const joined = await chatCollection.aggregate([
+        {
+            $lookup: {
+                from: "Events",
+                localField: "event",
+                foreignField: "_id",
+                as: "eventDetails"
+            }
+        },
+        {
+            $match: { "_id" : new ObjectId(req.params.id) }
         }
-    }]).toArray()
+    ]).toArray()
     res.send(joined)
 })
 
