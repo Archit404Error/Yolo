@@ -143,7 +143,6 @@ app.post('/register', bp.json(), (req, res) => {
             res.send(result);
         })
     })
-    res.send("OK")
 })
 
 /**
