@@ -135,7 +135,8 @@ app.post('/register', bp.json(), (req, res) => {
         "pendingEvents" : [],
         "friends" : [],
         "friendReqs" : [],
-        "profilePic" : "https://firebasestorage.googleapis.com/v0/b/eventapp-73ba7.appspot.com/o/Profiles%2Fdefault_user.png?alt=media&token=c4f609d3-a714-4d70-8383-ac59368ac640"
+        "profilePic" : "https://firebasestorage.googleapis.com/v0/b/eventapp-73ba7.appspot.com/o/Profiles%2Fdefault_user.png?alt=media&token=c4f609d3-a714-4d70-8383-ac59368ac640",
+        "tokens" : []
     })
     .then(doc => {
         userCollection.findOne({"_id" : doc.insertedId}, (err, result) => {
@@ -143,6 +144,19 @@ app.post('/register', bp.json(), (req, res) => {
             res.send(result);
         })
     })
+})
+
+/**
+ * Assigns a push token to a user
+ */
+app.post('/registerPushToken', bp.json(), (req, res) => {
+    const userId = req.body.user;
+    const token = req.body.token;
+    userCollection.updateOne(
+        {"_id" : new ObjectId(userId)},
+        {$push : {"tokens" : token}}
+    )
+    res.send("success")
 })
 
 /**
