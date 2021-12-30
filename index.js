@@ -1,4 +1,5 @@
 import { MongoClient, ObjectId } from 'mongodb';
+import { Expo } from 'expo-server-sdk';
 import bp from 'body-parser';
 import express from 'express';
 import nodeGeocoder from 'node-geocoder';
@@ -10,7 +11,7 @@ const locationFinder = nodeGeocoder({
 
 const uri = process.env.MONGO_URI;
 const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
-var db, chatCollection, eventCollection, userCollection;
+var db, chatCollection, eventCollection, userCollection, expoServer;
 
 /** 
  * Returns JSON data of event with a given id
@@ -135,7 +136,8 @@ app.post('/register', bp.json(), (req, res) => {
         "pendingEvents" : [],
         "friends" : [],
         "friendReqs" : [],
-        "profilePic" : "https://firebasestorage.googleapis.com/v0/b/eventapp-73ba7.appspot.com/o/Profiles%2Fdefault_user.png?alt=media&token=c4f609d3-a714-4d70-8383-ac59368ac640"
+        "profilePic" : "https://firebasestorage.googleapis.com/v0/b/eventapp-73ba7.appspot.com/o/Profiles%2Fdefault_user.png?alt=media&token=c4f609d3-a714-4d70-8383-ac59368ac640",
+        "tokens" : []
     })
     .then(doc => {
         userCollection.findOne({"_id" : doc.insertedId}, (err, result) => {
@@ -143,6 +145,19 @@ app.post('/register', bp.json(), (req, res) => {
             res.send(result);
         })
     })
+})
+
+/**
+ * Assigns a push token to a user
+ */
+app.post('/registerPushToken', bp.json(), (req, res) => {
+    const userId = req.body.user;
+    const token = req.body.token;
+    userCollection.updateOne(
+        {"_id" : new ObjectId(userId)},
+        {$addToSet : {"tokens" : token}}
+    )
+    res.send("success")
 })
 
 /**
@@ -198,10 +213,41 @@ app.post('/sendMessage', bp.json(), (req, res) => {
     if (!senderId || !message || !chatId) {
         return res.status(500).send("Incorrectly formatted request");
     }
-    chatCollection.updateOne(
+    chatCollection.findOneAndUpdate(
         {"_id" : new ObjectId(chatId)},
-        {$push : { "messages" : [senderId, message] } }
+        {$push : { "messages" : [senderId, message] } },
+        {returnNewDocument: true}
     )
+        .then(updatedDoc => {
+            let notifs = [];
+            for (const memberId of updatedDoc.value.members) {
+                if (memberId != senderId) {
+                    userCollection.findOne({"_id" : memberId})
+                        .then(userDoc => {
+                            for (const token of userDoc.tokens) {
+                                notifs.push({
+                                    to: token,
+                                    sound: 'default',
+                                    body: message,
+                                    data: { withSome: 'data' },
+                                })
+                            }
+                        })
+                }
+            }
+            let chunks = expoServer.chunkPushNotifications(notifs);
+            let tickets = [];
+            (async () => {
+                for (let chunk of chunks) {
+                    try {
+                        let ticketChunk = expoServer.sendPushNotificationsAsync(chunk);
+                        tickets.push(...ticketChunk);
+                    } catch (err) {
+                        res.status(500).send("Error while sending notif chunk");
+                    }
+                }
+            })();
+        })
     res.send("OK")
 })
 
@@ -291,5 +337,6 @@ app.listen(process.env.PORT || 8080, () => {
         chatCollection = db.collection("Chats");
         eventCollection = db.collection("Events");
         userCollection = db.collection("Users");
+        expoServer = new Expo({ accessToken: process.env.EXPO_TOKEN  });
     })
 })
