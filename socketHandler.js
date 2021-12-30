@@ -9,8 +9,8 @@ export default class {
     init() {
         this.io.on("connection", (socket) => {
             console.log("A user connected");
-            socket.join(socket.request._query['chatId'])
-            console.log(`Joined room ${socket.request._query['chatId']}`)
+            socket.join(socket.handshake.query.chatId)
+            console.log(`Joined room ${socket.handshake.query.chatId}`)
         })
 
         this.io.on("disconnect", (socket) => {
