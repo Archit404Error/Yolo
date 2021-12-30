@@ -155,7 +155,7 @@ app.post('/registerPushToken', bp.json(), (req, res) => {
     const token = req.body.token;
     userCollection.updateOne(
         {"_id" : new ObjectId(userId)},
-        {$push : {"tokens" : token}}
+        {$addToSet : {"tokens" : token}}
     )
     res.send("success")
 })
