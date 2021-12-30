@@ -1,5 +1,6 @@
 import { MongoClient, ObjectId } from 'mongodb';
 import { Expo } from 'expo-server-sdk';
+import { Server } from 'socket.io';
 import bp from 'body-parser';
 import express from 'express';
 import nodeGeocoder from 'node-geocoder';
@@ -328,7 +329,7 @@ app.use(function (req, res, next){
 	res.status(404).send('Unable to find the requested resource!');
 });
 
-app.listen(process.env.PORT || 8080, () => {
+const server = app.listen(process.env.PORT || 8080, () => {
     console.log("✅: Server is up and running")
     client.connect(err => {
         if (err) throw err;
@@ -338,4 +339,10 @@ app.listen(process.env.PORT || 8080, () => {
         userCollection = db.collection("Users");
         expoServer = new Expo({ accessToken: process.env.EXPO_TOKEN  });
     })
+})
+
+const io = new Server(server);
+
+io.on("connection", (socket) => {
+    console.log("A user connected");
 })
