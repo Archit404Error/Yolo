@@ -4,7 +4,7 @@ import bp from 'body-parser';
 import express from 'express';
 import nodeGeocoder from 'node-geocoder';
 
-import socketHandler from './socketHandler';
+import socketHandler from './socketHandler.js';
 
 const app = express();
 const locationFinder = nodeGeocoder({
