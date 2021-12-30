@@ -127,7 +127,7 @@ app.post('/register', bp.json(), (req, res) => {
     const username = req.body.username;
     const password = req.body.password;
     const name = req.body.name;
-    userCollection.insertOne({
+    const userData = {
         "username" : username,
         "password" : password,
         "name" : name,
@@ -138,12 +138,11 @@ app.post('/register', bp.json(), (req, res) => {
         "friendReqs" : [],
         "profilePic" : "https://firebasestorage.googleapis.com/v0/b/eventapp-73ba7.appspot.com/o/Profiles%2Fdefault_user.png?alt=media&token=c4f609d3-a714-4d70-8383-ac59368ac640",
         "tokens" : []
-    })
+    }
+    userCollection.insertOne(userData)
     .then(doc => {
-        userCollection.findOne({"_id" : doc.insertedId}, (err, result) => {
-            if (err) return res.status(500).send(err);
-            res.send(result);
-        })
+        userData["_id"] = doc.insertedId
+        res.send(userData);
     })
 })
 
