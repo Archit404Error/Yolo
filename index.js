@@ -1,9 +1,10 @@
 import { MongoClient, ObjectId } from 'mongodb';
 import { Expo } from 'expo-server-sdk';
-import { Server } from 'socket.io';
 import bp from 'body-parser';
 import express from 'express';
 import nodeGeocoder from 'node-geocoder';
+
+import socketHandler from './socketHandler';
 
 const app = express();
 const locationFinder = nodeGeocoder({
@@ -341,8 +342,4 @@ const server = app.listen(process.env.PORT || 8080, () => {
     })
 })
 
-const io = new Server(server);
-
-io.on("connection", (socket) => {
-    console.log("A user connected");
-})
+const handler = new socketHandler(server);
