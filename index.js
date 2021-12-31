@@ -4,6 +4,8 @@ import bp from 'body-parser';
 import express from 'express';
 import nodeGeocoder from 'node-geocoder';
 
+import socketHandler from './socketHandler.js';
+
 const app = express();
 const locationFinder = nodeGeocoder({
     provider : 'openstreetmap',
@@ -106,6 +108,28 @@ app.get('/chatUsers/:id', async (req, res) => {
     res.send(result);
 })
 
+/**
+ * Returns a list consisting of ids of a user's friends who posted stories
+ */
+ app.get('/storyIds/:id', async (req, res) => {
+     if (!req.params.id) return res.status(500).send("No id supplied!");
+     const result = await userCollection.aggregate([
+        {
+            $match: {
+                "friends" : { $all: [new ObjectId(req.params.id)] },
+            }
+        },
+        {
+            $project: {
+                "_id" : 1,
+                "storyImage" : { $ifNull : ["$storyImage", null] }
+            }
+        }
+     ]).toArray();
+     result.filter(elem => elem.storyImage != null);
+     res.send(result);
+ })
+
 /** 
  * Authenticates users by returning JSON data if auth suceeds, else returns empty response
  */
@@ -127,7 +151,7 @@ app.post('/register', bp.json(), (req, res) => {
     const username = req.body.username;
     const password = req.body.password;
     const name = req.body.name;
-    userCollection.insertOne({
+    const userData = {
         "username" : username,
         "password" : password,
         "name" : name,
@@ -138,12 +162,11 @@ app.post('/register', bp.json(), (req, res) => {
         "friendReqs" : [],
         "profilePic" : "https://firebasestorage.googleapis.com/v0/b/eventapp-73ba7.appspot.com/o/Profiles%2Fdefault_user.png?alt=media&token=c4f609d3-a714-4d70-8383-ac59368ac640",
         "tokens" : []
-    })
+    }
+    userCollection.insertOne(userData)
     .then(doc => {
-        userCollection.findOne({"_id" : doc.insertedId}, (err, result) => {
-            if (err) return res.status(500).send(err);
-            res.send(result);
-        })
+        userData["_id"] = doc.insertedId
+        res.send(userData);
     })
 })
 
@@ -329,7 +352,7 @@ app.use(function (req, res, next){
 	res.status(404).send('Unable to find the requested resource!');
 });
 
-app.listen(process.env.PORT || 8080, () => {
+const server = app.listen(process.env.PORT || 8080, () => {
     console.log("✅: Server is up and running")
     client.connect(err => {
         if (err) throw err;
@@ -340,3 +363,5 @@ app.listen(process.env.PORT || 8080, () => {
         expoServer = new Expo({ accessToken: process.env.EXPO_TOKEN  });
     })
 })
+
+const handler = new socketHandler(server);
