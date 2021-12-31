@@ -11,10 +11,13 @@ export default class {
             console.log("A user connected");
             socket.join(socket.handshake.query.chatId)
             console.log(`Joined room ${socket.handshake.query.chatId}`)
-        })
-
-        this.io.on("disconnect", (socket) => {
-            console.log("User disconnected")
+            socket.on("messageSent", (messageData) => {
+                console.log(`${messageData.user} : ${messageData.message}`)
+                this.io.to(messageData.chatId).emit("messageSent");
+            })
+            socket.on("disconnect", () => {
+                console.log("User disconnected")
+            })
         })
     }
 }
