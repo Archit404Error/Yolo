@@ -17,6 +17,7 @@ export default class {
             })
             socket.on("disconnect", () => {
                 console.log("User disconnected")
+                socket.disconnect();
             })
         })
     }
