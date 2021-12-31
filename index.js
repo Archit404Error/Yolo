@@ -108,6 +108,28 @@ app.get('/chatUsers/:id', async (req, res) => {
     res.send(result);
 })
 
+/**
+ * Returns a list consisting of ids of a user's friends who posted stories
+ */
+ app.get('/storyIds/:id', async (req, res) => {
+     if (!req.params.id) return res.status(500).send("No id supplied!");
+     const result = await userCollection.aggregate([
+        {
+            $match: {
+                "friends" : { $all: [new ObjectId(req.params.id)] },
+            }
+        },
+        {
+            $project: {
+                "_id" : 1,
+                "storyImage" : { $ifNull : ["$storyImage", null] }
+            }
+        }
+     ]).toArray();
+     result.filter(elem => elem.storyImage != null);
+     res.send(result);
+ })
+
 /** 
  * Authenticates users by returning JSON data if auth suceeds, else returns empty response
  */
