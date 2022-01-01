@@ -313,6 +313,10 @@ app.post('/determineFriend', bp.json(), (req, res) => {
             {"_id" : receiverId},
             {$push : { "friends" : senderId }}
         )
+        userCollection.updateOne(
+            {"_id" : senderId},
+            {$push : { "friends" : receiverId } }
+        )
     }
     res.send("OK")
 })
@@ -348,7 +352,20 @@ app.post('/eventRSVP', bp.json(), (req, res) => {
     res.send("OK")
 })
 
-app.use(function (req, res, next){
+/**
+ * Uploads a users story image
+ * Requires: user (String) and image (String) are supplied in the body of the request
+ */
+app.post('/uploadStory', bp.json(), (req, res) => {
+    const userId = new ObjectId(req.body.user);
+    const imageUrl = req.body.image;
+    userCollection.updateOne(
+        {"_id" : userId},
+        {$set : { "storyImage" : imageUrl } }
+    )
+})
+
+app.use((req, res, next) => {
 	res.status(404).send('Unable to find the requested resource!');
 });
 
