@@ -253,7 +253,7 @@ app.post('/sendMessage', bp.json(), (req, res) => {
                                     to: token,
                                     sound: 'default',
                                     body: message,
-                                    data: { withSome: 'data' },
+                                    data: {},
                                 })
                             }
                         })
@@ -267,9 +267,11 @@ app.post('/sendMessage', bp.json(), (req, res) => {
                         let ticketChunk = expoServer.sendPushNotificationsAsync(chunk);
                         tickets.push(...ticketChunk);
                     } catch (err) {
+                        console.log(err);
                         res.status(500).send("Error while sending notif chunk");
                     }
                 }
+                console.log(tickets);
             })();
         })
     res.send("OK")
