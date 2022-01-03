@@ -243,36 +243,39 @@ app.post('/sendMessage', bp.json(), (req, res) => {
     )
         .then(updatedDoc => {
             let notifs = [];
+            let notifUsers = [];
             for (const memberId of updatedDoc.value.members) {
-                if (memberId != senderId) {
-                    userCollection.findOne({"_id" : memberId})
-                        .then(userDoc => {
-                            for (const token of userDoc.tokens) {
-                                console.log(`sending to ${token}`)
-                                notifs.push({
-                                    to: token,
-                                    sound: 'default',
-                                    body: message,
-                                    data: {},
-                                })
-                            }
-                        })
+                if (memberId != req.body.sender) {
+                    notifUsers.push(new ObjectId(memberId));
                 }
             }
-            let chunks = expoServer.chunkPushNotifications(notifs);
-            let tickets = [];
-            (async () => {
-                for (let chunk of chunks) {
-                    try {
-                        let ticketChunk = expoServer.sendPushNotificationsAsync(chunk);
-                        tickets.push(...ticketChunk);
-                    } catch (err) {
-                        console.log(err);
-                        res.status(500).send("Error while sending notif chunk");
-                    }
-                }
-                console.log(tickets);
-            })();
+
+            userCollection.find({"_id" : {$in : notifUsers}}).toArray()
+                .then(userDocs => {
+                    userDocs.forEach(doc => {
+                        doc.tokens.forEach(token => {
+                            notifs.push({
+                                to: token,
+                                sound: 'default',
+                                body: message,
+                                data: {},
+                            })
+                        })
+                    })
+        
+                    let chunks = expoServer.chunkPushNotifications(notifs);
+                    let tickets = [];
+                    (async () => {
+                        for (let chunk of chunks) {
+                            try {
+                                let ticketChunk = await expoServer.sendPushNotificationsAsync(chunk);
+                                tickets.push(...ticketChunk);
+                            } catch (err) {
+                                res.status(500).send("Error while sending notif chunk");
+                            }
+                        }
+                    })();
+                })
         })
     res.send("OK")
 })
