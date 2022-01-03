@@ -230,7 +230,7 @@ app.post('/create', bp.json(), (req, res) => {
  * Records a message sent by a user in a chat
  */
 app.post('/sendMessage', bp.json(), (req, res) => {
-    const senderId = req.body.sender;
+    const senderId = new ObjectId(req.body.sender);
     const message = req.body.message;
     const chatId = req.body.chat;
     if (!senderId || !message || !chatId) {
@@ -248,6 +248,7 @@ app.post('/sendMessage', bp.json(), (req, res) => {
                     userCollection.findOne({"_id" : memberId})
                         .then(userDoc => {
                             for (const token of userDoc.tokens) {
+                                console.log(`sending to ${token}`)
                                 notifs.push({
                                     to: token,
                                     sound: 'default',
