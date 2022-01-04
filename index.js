@@ -230,7 +230,7 @@ app.post('/create', bp.json(), (req, res) => {
  * Records a message sent by a user in a chat
  */
 app.post('/sendMessage', bp.json(), (req, res) => {
-    const senderId = req.body.sender;
+    const senderId = new ObjectId(req.body.sender);
     const message = req.body.message;
     const chatId = req.body.chat;
     if (!senderId || !message || !chatId) {
@@ -243,33 +243,39 @@ app.post('/sendMessage', bp.json(), (req, res) => {
     )
         .then(updatedDoc => {
             let notifs = [];
+            let notifUsers = [];
             for (const memberId of updatedDoc.value.members) {
-                if (memberId != senderId) {
-                    userCollection.findOne({"_id" : memberId})
-                        .then(userDoc => {
-                            for (const token of userDoc.tokens) {
-                                notifs.push({
-                                    to: token,
-                                    sound: 'default',
-                                    body: message,
-                                    data: { withSome: 'data' },
-                                })
-                            }
-                        })
+                if (memberId != req.body.sender) {
+                    notifUsers.push(new ObjectId(memberId));
                 }
             }
-            let chunks = expoServer.chunkPushNotifications(notifs);
-            let tickets = [];
-            (async () => {
-                for (let chunk of chunks) {
-                    try {
-                        let ticketChunk = expoServer.sendPushNotificationsAsync(chunk);
-                        tickets.push(...ticketChunk);
-                    } catch (err) {
-                        res.status(500).send("Error while sending notif chunk");
-                    }
-                }
-            })();
+
+            userCollection.find({"_id" : {$in : notifUsers}}).toArray()
+                .then(userDocs => {
+                    userDocs.forEach(doc => {
+                        doc.tokens.forEach(token => {
+                            notifs.push({
+                                to: token,
+                                sound: 'default',
+                                body: message,
+                                data: {},
+                            })
+                        })
+                    })
+        
+                    let chunks = expoServer.chunkPushNotifications(notifs);
+                    let tickets = [];
+                    (async () => {
+                        for (let chunk of chunks) {
+                            try {
+                                let ticketChunk = await expoServer.sendPushNotificationsAsync(chunk);
+                                tickets.push(...ticketChunk);
+                            } catch (err) {
+                                res.status(500).send("Error while sending notif chunk");
+                            }
+                        }
+                    })();
+                })
         })
     res.send("OK")
 })
@@ -313,6 +319,10 @@ app.post('/determineFriend', bp.json(), (req, res) => {
             {"_id" : receiverId},
             {$push : { "friends" : senderId }}
         )
+        userCollection.updateOne(
+            {"_id" : senderId},
+            {$push : { "friends" : receiverId } }
+        )
     }
     res.send("OK")
 })
@@ -348,7 +358,20 @@ app.post('/eventRSVP', bp.json(), (req, res) => {
     res.send("OK")
 })
 
-app.use(function (req, res, next){
+/**
+ * Uploads a users story image
+ * Requires: user (String) and image (String) are supplied in the body of the request
+ */
+app.post('/uploadStory', bp.json(), (req, res) => {
+    const userId = new ObjectId(req.body.user);
+    const imageUrl = req.body.image;
+    userCollection.updateOne(
+        {"_id" : userId},
+        {$set : { "storyImage" : imageUrl } }
+    )
+})
+
+app.use((req, res, next) => {
 	res.status(404).send('Unable to find the requested resource!');
 });
 
