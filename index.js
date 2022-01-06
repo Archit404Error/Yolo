@@ -206,7 +206,7 @@ app.post('/create', bp.json(), (req, res) => {
  * Records a message sent by a user in a chat
  */
 app.post('/sendMessage', bp.json(), (req, res) => {
-    const senderName = new ObjectId(req.body.sender);
+    const senderName = req.body.sender;
     const message = req.body.message;
     const chatId = req.body.chat;
     if (!senderName || !message || !chatId) {
