@@ -133,6 +133,7 @@ app.post('/register', bp.json(), (req, res) => {
         "rejectedEvents" : [],
         "acceptedEvents" : [],
         "pendingEvents" : [],
+        "chats": [],
         "friends" : [],
         "friendReqs" : [],
         "profilePic" : "https://firebasestorage.googleapis.com/v0/b/eventapp-73ba7.appspot.com/o/Profiles%2Fdefault_user.png?alt=media&token=c4f609d3-a714-4d70-8383-ac59368ac640",
@@ -205,18 +206,15 @@ app.post('/create', bp.json(), (req, res) => {
  * Records a message sent by a user in a chat
  */
 app.post('/sendMessage', bp.json(), (req, res) => {
-    const senderId = new ObjectId(req.body.sender);
+    const senderName = new ObjectId(req.body.sender);
     const message = req.body.message;
     const chatId = req.body.chat;
-    console.log(chatId);
-    console.log(message);
-    console.log(senderId);
-    if (!senderId || !message || !chatId) {
+    if (!senderName || !message || !chatId) {
         return res.status(500).send("Incorrectly formatted request");
     }
 
     const messageObj = {
-        sender: senderId,
+        sender: senderName,
         message: message
     }
 
@@ -330,10 +328,16 @@ app.post('/eventRSVP', bp.json(), async (req, res) => {
             {"_id" : userId}
         )
 
-        chatCollection.updateOne(
+        chatCollection.findOneAndUpdate(
             {"event" : eventId},
             {$push : { "members" : await userData }}
         )
+            .then(found => {
+                userCollection.updateOne(
+                    {"_id" : userId},
+                    {$push : { "chats" : found._id }}
+                )
+            })
     } else {
         userCollection.updateOne(
             {"_id" : userId},
