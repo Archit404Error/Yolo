@@ -42,7 +42,7 @@ app.get('/user/:id', (req, res) => {
  */
 app.get('/userChats/:id', async (req, res) => {
     if (!req.params.id) return res.status(500).send("ID Error");
-    const found = chatCollection.find({"members" : new ObjectId(req.params.id)});
+    const found = chatCollection.find({"members._id" : new ObjectId(req.params.id)});
     if ((await found.count()) == 0) return res.send([])
     res.send(await found.toArray())
 })
@@ -80,32 +80,6 @@ app.get('/chatDetails/:id', async (req, res) => {
         }
     ]).next();
     res.send(joined)
-})
-
-/**
- * Returns user details of all participants in a chat
- */
-app.get('/chatUsers/:id', async (req, res) => {
-    if (!req.params.id) return res.status(500).send("Invalid chat id");
-    const result = await chatCollection.aggregate([
-        {
-            $lookup: {
-                from: "Users",
-                localField: "members",
-                foreignField: "_id",
-                as: "memberDetails"
-            }
-        },
-        {
-            $project: {
-                "memberDetails._id": 1,
-                "memberDetails.name": 1,
-                "memberDetails.profilePic": 1
-            }
-        },
-        { $match: { "_id" : new ObjectId(req.params.id) } }
-    ]).next();
-    res.send(result);
 })
 
 /**
@@ -152,22 +126,22 @@ app.post('/register', bp.json(), (req, res) => {
     const password = req.body.password;
     const name = req.body.name;
     const userData = {
+        "_id" : new ObjectId(),
         "username" : username,
         "password" : password,
         "name" : name,
         "rejectedEvents" : [],
         "acceptedEvents" : [],
         "pendingEvents" : [],
+        "chats": [],
         "friends" : [],
         "friendReqs" : [],
         "profilePic" : "https://firebasestorage.googleapis.com/v0/b/eventapp-73ba7.appspot.com/o/Profiles%2Fdefault_user.png?alt=media&token=c4f609d3-a714-4d70-8383-ac59368ac640",
         "tokens" : []
     }
     userCollection.insertOne(userData)
-    .then(doc => {
-        userData["_id"] = doc.insertedId
-        res.send(userData);
-    })
+    // send data back to client to be stored
+    res.send(userData);
 })
 
 /**
@@ -196,31 +170,33 @@ app.post('/create', bp.json(), (req, res) => {
     let longitude = 0;
     let latitude = 0;
 
+    const eventId = new ObjectId();
+
     locationFinder.geocode(loc)
-    .then(res => res[0])
-    .then(actualRes => {
-        longitude = actualRes.longitude;
-        latitude = actualRes.latitude;
-    })
-    .then(() => {
-        eventCollection.insertOne({
-            "image" : image,
-            "title" : title,
-            "description" : desc,
-            "location" : loc,
-            "tags" : tags,
-            "latitude" : latitude,
-            "longitude" : longitude,
-            "other" : other,
-            "attendees": [],
+        .then(res => res[0])
+        .then(actualRes => {
+            longitude = actualRes.longitude;
+            latitude = actualRes.latitude;
         })
-        .then(inserted => {
-            chatCollection.insertOne({
-                "event" : inserted.insertedId,
-                "messages" : [],
-                "members" : []
+        .then(() => {
+            eventCollection.insertOne({
+                "_id" : eventId,
+                "image" : image,
+                "title" : title,
+                "description" : desc,
+                "location" : loc,
+                "tags" : tags,
+                "latitude" : latitude,
+                "longitude" : longitude,
+                "other" : other,
+                "attendees": [],
             })
         })
+    
+    chatCollection.insertOne({
+        "event" : eventId,
+        "messages" : [],
+        "members" : []
     })
 
     res.send("OK")
@@ -230,52 +206,48 @@ app.post('/create', bp.json(), (req, res) => {
  * Records a message sent by a user in a chat
  */
 app.post('/sendMessage', bp.json(), (req, res) => {
-    const senderId = new ObjectId(req.body.sender);
+    const senderName = req.body.sender;
     const message = req.body.message;
     const chatId = req.body.chat;
-    if (!senderId || !message || !chatId) {
+    if (!senderName || !message || !chatId) {
         return res.status(500).send("Incorrectly formatted request");
     }
+
+    const messageObj = {
+        sender: senderName,
+        message: message
+    }
+
     chatCollection.findOneAndUpdate(
         {"_id" : new ObjectId(chatId)},
-        {$push : { "messages" : [senderId, message] } },
+        {$push : { "messages" : messageObj } },
         {returnNewDocument: true}
     )
         .then(updatedDoc => {
             let notifs = [];
-            let notifUsers = [];
-            for (const memberId of updatedDoc.value.members) {
-                if (memberId != req.body.sender) {
-                    notifUsers.push(new ObjectId(memberId));
-                }
+            for (const member of updatedDoc.value.members) {
+                member.tokens.forEach(token => 
+                    notifs.push({
+                        to: token,
+                        sound: 'default',
+                        body: `${member.name}: ${message}`,
+                        data: {},
+                    })
+                )
             }
 
-            userCollection.find({"_id" : {$in : notifUsers}}).toArray()
-                .then(userDocs => {
-                    userDocs.forEach(doc => {
-                        doc.tokens.forEach(token => {
-                            notifs.push({
-                                to: token,
-                                sound: 'default',
-                                body: message,
-                                data: {},
-                            })
-                        })
-                    })
-        
-                    let chunks = expoServer.chunkPushNotifications(notifs);
-                    let tickets = [];
-                    (async () => {
-                        for (let chunk of chunks) {
-                            try {
-                                let ticketChunk = await expoServer.sendPushNotificationsAsync(chunk);
-                                tickets.push(...ticketChunk);
-                            } catch (err) {
-                                res.status(500).send("Error while sending notif chunk");
-                            }
-                        }
-                    })();
-                })
+            let chunks = expoServer.chunkPushNotifications(notifs);
+            let tickets = [];
+            (async () => {
+                for (let chunk of chunks) {
+                    try {
+                        let ticketChunk = await expoServer.sendPushNotificationsAsync(chunk);
+                        tickets.push(...ticketChunk);
+                    } catch (err) {
+                        res.status(500).send("Error while sending notif chunk");
+                    }
+                }
+            })();
         })
     res.send("OK")
 })
@@ -328,14 +300,82 @@ app.post('/determineFriend', bp.json(), (req, res) => {
 })
 
 /**
+ * A resource-heavy time consuming friend suggestion algorithm
+ */
+app.post('/populateFriends', bp.json(), async (req, res) => {
+    const userId = req.body.user;
+    // an acquantaince is a friend of a friend
+    let acquaintanceOccurrences = {};
+    let userFriends = new Set();
+    const friendCursor = userCollection.find({ "friends" : { $all : [new ObjectId(userId)] } })
+    const friendDocs = await friendCursor.toArray();
+
+    for (const friendDoc of await friendDocs) {
+        userFriends.add(friendDoc._id);
+        friendDoc.friends.forEach(id => {
+            if (id != userId) {
+                // Compute weighted importance of connection (edge weight in friend graph)
+                const weight = 1 / friendDoc.friends.length;
+                if (acquaintanceOccurrences[id])
+                    acquaintanceOccurrences[id] += weight;
+                else
+                    acquaintanceOccurrences[id] = weight;
+            }
+        })
+    }
+
+    const pastEventDetails = await userCollection.aggregate([
+        { $match : { "_id" : new ObjectId(userId) } },
+        { 
+            $lookup : {
+                from : "Events",
+                localField: "acceptedEvents",
+                foreignField: "id",
+                as: "eventDetails"
+            }
+        },
+        { $project: { "eventDetails" : 1 } }
+    ]).eventDetails
+
+    for (const eventDoc of await pastEventDetails) {
+        eventDoc.attendees.forEach(id => {
+            if (id != userId) {
+                // Compute weight based on number of attendees of event
+                const weight = 1 / eventDoc.attendees.length;
+                if (acquaintanceOccurrences[id])
+                    acquaintanceOccurrences[id] += weight;
+                else
+                    acquaintanceOccurrences[id] = weight;
+            }
+        })
+    }
+
+    // Store top 5 most occurring acquaintances and remove existing friends
+    const topRec = Object.entries(acquaintanceOccurrences)
+                    .sort(([,a], [,b]) => a - b)
+                    .map(freqArr => freqArr[0])
+                    .filter(id => userFriends.has(id))
+                    .filter((elem, index) => index < 5)
+
+    userCollection.updateOne(
+        {"_id" : new ObjectId(userId)},
+        { $set : { "friendRecommendations" : topRec } }
+    )
+
+    res.send("Populated")
+})
+
+/**
  * Handles user's RSVP to an event
  * Requires: user (String), event (String), and action (String) are supplied in request body
- * Requires: action (String) is either 'accepted' or 'rejected'
  */
-app.post('/eventRSVP', bp.json(), (req, res) => {
+app.post('/eventRSVP', bp.json(), async (req, res) => {
     const userId = new ObjectId(req.body.user);
     const eventId = new ObjectId(req.body.event);
     const action = req.body.action;
+    if (!userId || !eventId || !action) {
+        return res.status(500).send("Invalid params supplied")
+    }
     userCollection.updateOne(
         {"_id" : userId},
         {$pull : { "pendingEvents" : eventId }}
@@ -349,6 +389,21 @@ app.post('/eventRSVP', bp.json(), (req, res) => {
             {"_id" : eventId},
             {$push : { "attendees" : userId }}
         )
+        
+        const userData = await userCollection.findOne(
+            {"_id" : userId}
+        )
+
+        chatCollection.findOneAndUpdate(
+            {"event" : eventId},
+            {$push : { "members" : await userData }}
+        )
+            .then(found => {
+                userCollection.updateOne(
+                    {"_id" : userId},
+                    {$push : { "chats" : found._id }}
+                )
+            })
     } else {
         userCollection.updateOne(
             {"_id" : userId},
