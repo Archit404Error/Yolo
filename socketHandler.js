@@ -9,11 +9,12 @@ export default class {
     init() {
         this.io.on("connection", (socket) => {
             console.log("A user connected");
+            socket.handshake.query.chatList.split(",").map(id => socket.join(id))
             socket.join(socket.handshake.query.chatId)
             console.log(`Joined room ${socket.handshake.query.chatId}`)
             socket.on("messageSent", (messageData) => {
                 console.log(`${messageData.sender} : ${messageData.message}`)
-                this.io.to(messageData.chat).emit("messageSent");
+                this.io.to(messageData.chat).emit("messageSent", messageData.chat);
             })
             socket.on("disconnect", () => {
                 console.log("User disconnected")
