@@ -300,6 +300,72 @@ app.post('/determineFriend', bp.json(), (req, res) => {
 })
 
 /**
+ * A resource-heavy time consuming friend suggestion algorithm
+ */
+app.post('/populateFriends', bp.json(), async (req, res) => {
+    const userId = req.body.user;
+    // an acquantaince is a friend of a friend
+    let acquaintanceOccurrences = {};
+    let userFriends = new Set();
+    const friendCursor = userCollection.find({ "friends" : { $all : [new ObjectId(userId)] } })
+    const friendDocs = await friendCursor.toArray();
+
+    for (const friendDoc of await friendDocs) {
+        userFriends.add(friendDoc._id);
+        friendDoc.friends.forEach(id => {
+            if (id != userId) {
+                // Compute weighted importance of connection (edge weight in friend graph)
+                const weight = 1 / friendDoc.friends.length;
+                if (acquaintanceOccurrences[id])
+                    acquaintanceOccurrences[id] += weight;
+                else
+                    acquaintanceOccurrences[id] = weight;
+            }
+        })
+    }
+
+    const pastEventDetails = await userCollection.aggregate([
+        { $match : { "_id" : new ObjectId(userId) } },
+        { 
+            $lookup : {
+                from : "Events",
+                localField: "acceptedEvents",
+                foreignField: "id",
+                as: "eventDetails"
+            }
+        },
+        { $project: { "eventDetails" : 1 } }
+    ]).eventDetails
+
+    for (const eventDoc of await pastEventDetails) {
+        eventDoc.attendees.forEach(id => {
+            if (id != userId) {
+                // Compute weight based on number of attendees of event
+                const weight = 1 / eventDoc.attendees.length;
+                if (acquaintanceOccurrences[id])
+                    acquaintanceOccurrences[id] += weight;
+                else
+                    acquaintanceOccurrences[id] = weight;
+            }
+        })
+    }
+
+    // Store top 5 most occurring acquaintances and remove existing friends
+    const topRec = Object.entries(acquaintanceOccurrences)
+                    .sort(([,a], [,b]) => a - b)
+                    .map(freqArr => freqArr[0])
+                    .filter(id => userFriends.has(id))
+                    .filter((elem, index) => index < 5)
+
+    userCollection.updateOne(
+        {"_id" : new ObjectId(userId)},
+        { $set : { "friendRecommendations" : topRec } }
+    )
+
+    res.send("Populated")
+})
+
+/**
  * Handles user's RSVP to an event
  * Requires: user (String), event (String), and action (String) are supplied in request body
  */
