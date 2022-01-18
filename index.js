@@ -5,6 +5,7 @@ import express from 'express';
 import nodeGeocoder from 'node-geocoder';
 
 import socketHandler from './socketHandler.js';
+import { pointDist } from './helperMethods.js';
 
 const app = express();
 const locationFinder = nodeGeocoder({
@@ -165,6 +166,8 @@ app.post('/create', bp.json(), (req, res) => {
     const title = req.body.title;
     const desc = req.body.description;
     const loc = req.body.location;
+    const startDate = req.body.startDate;
+    const endDate = req.body.endDate;
     const tags = req.body.tags;
     const other = req.body.other;
     let longitude = 0;
@@ -185,6 +188,8 @@ app.post('/create', bp.json(), (req, res) => {
                 "title" : title,
                 "description" : desc,
                 "location" : loc,
+                "startDate" : startDate,
+                "endDate" : endDate,
                 "tags" : tags,
                 "latitude" : latitude,
                 "longitude" : longitude,
@@ -363,6 +368,15 @@ app.post('/populateFriends', bp.json(), async (req, res) => {
     )
 
     res.send("Populated")
+})
+
+/**
+ * Stores a user's event suggestions
+ */
+app.post('addEventSuggestions', async (req, res) => {
+    const userId = req.body.user;
+    const userDoc = await userCollection.findOne({ "_id" : new ObjectId(userId) });
+    
 })
 
 /**
