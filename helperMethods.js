@@ -16,3 +16,26 @@ export const pointDist = (lat1, lon1, lat2, lon2) => {
 
     return 7917.509282 * Math.asin(Math.sqrt(angle));
 }
+
+/**
+ * Takes an array of notifications and sends them to users in batches (called chunks)
+ * @param {NotifObject[]} notifs an array of notification objects
+ * @param {Object} expoServer the server object to connect with
+ */
+export const sendNotifs = async (notifs, expoServer) => {
+    console.log("was called");
+    console.log(notifs);
+    let chunks = expoServer.chunkPushNotifications(notifs);
+    let tickets = [];
+
+    for (let chunk of chunks) {
+        try {
+            let ticketChunk = await expoServer.sendPushNotificationsAsync(chunk);
+            // store tickets to check for notif status later
+            tickets.push(...ticketChunk);
+        } catch (err) {
+            res.status(500).send("Error while sending notif chunk");
+        }
+        console.log(tickets);
+    }
+}
