@@ -5,7 +5,7 @@ import express from 'express';
 import nodeGeocoder from 'node-geocoder';
 
 import socketHandler from './socketHandler.js';
-import { pointDist } from './helperMethods.js';
+import { pointDist, sendNotifs } from './helperMethods.js';
 
 const app = express();
 const locationFinder = nodeGeocoder({
@@ -162,6 +162,7 @@ app.post('/registerPushToken', bp.json(), (req, res) => {
  * Creates a new Event (and its corresponding chat)
  */
 app.post('/create', bp.json(), (req, res) => {
+    const creator = new ObjectId(req.body.creator);
     const image = req.body.image;
     const title = req.body.title;
     const desc = req.body.description;
@@ -184,6 +185,7 @@ app.post('/create', bp.json(), (req, res) => {
         .then(() => {
             eventCollection.insertOne({
                 "_id" : eventId,
+                "creator" : creator,
                 "image" : image,
                 "title" : title,
                 "description" : desc,
@@ -199,6 +201,7 @@ app.post('/create', bp.json(), (req, res) => {
         })
     
     chatCollection.insertOne({
+        "creator" : creator,
         "event" : eventId,
         "messages" : [],
         "members" : []
@@ -214,7 +217,9 @@ app.post('/sendMessage', bp.json(), (req, res) => {
     const senderName = req.body.sender;
     const message = req.body.message;
     const chatId = req.body.chat;
-    if (!senderName || !message || !chatId) {
+    const chatName = req.body.title;
+
+    if (!senderName || !message || !chatId || !chatName) {
         return res.status(500).send("Incorrectly formatted request");
     }
 
@@ -235,41 +240,45 @@ app.post('/sendMessage', bp.json(), (req, res) => {
                     notifs.push({
                         to: token,
                         sound: 'default',
+                        title: chatName,
                         body: `${member.name}: ${message}`,
                         data: {},
                     })
                 )
             }
 
-            let chunks = expoServer.chunkPushNotifications(notifs);
-            let tickets = [];
-            (async () => {
-                for (let chunk of chunks) {
-                    try {
-                        let ticketChunk = await expoServer.sendPushNotificationsAsync(chunk);
-                        tickets.push(...ticketChunk);
-                    } catch (err) {
-                        res.status(500).send("Error while sending notif chunk");
-                    }
-                }
-            })();
+            sendNotifs(notifs, expoServer);
         })
     res.send("OK")
 })
 
 /**
- * Sends a friend request
- * Requires: sender (String) and receiver (String) are sent in the request
+ * Sends / Revokes a friend request
+ * Requires: sender (String ObjId), name (String), and receiver (String ObjId) are sent in the request
  */
-app.post('/friendReq', bp.json(), (req, res) => {
-    const senderId = req.body.sender;
-    const receiverId = req.body.receiver;
+app.post('/friendReq', bp.json(), async (req, res) => {
+    const senderId = new ObjectId(req.body.sender);
+    const senderName = req.body.name;
+    const receiverId = new ObjectId(req.body.receiver);
     const wantToFriend = req.body.wantToFriend;
+    const receiverTokens = (await userCollection.findOne({"_id" : receiverId})).tokens;
+
     if (wantToFriend) {
         userCollection.updateOne(
             {"_id" : new ObjectId(receiverId)},
             {$push : { "friendReqs" : new ObjectId(senderId) }}
         )
+        let notifs = [];
+        (await receiverTokens).forEach(token => {
+            notifs.push({
+                to: token,
+                sound: 'default',
+                title: 'New friend request',
+                body: `${senderName} sent you a friend request`,
+                data: {}
+            })
+        })
+        sendNotifs(notifs, expoServer);
     } else {
         userCollection.updateOne(
             {"_id" : new ObjectId(receiverId)},
@@ -281,12 +290,14 @@ app.post('/friendReq', bp.json(), (req, res) => {
 
 /**
  * Deals with user accepting/rejecting a request
- * Requires: accepted (boolean), sender (String), and receiver (String) are sent in the request
+ * Requires: accepted (boolean), sender (String), name(String), and receiver (String) are sent in the request
  */
-app.post('/determineFriend', bp.json(), (req, res) => {
+app.post('/determineFriend', bp.json(), async (req, res) => {
     const accepted = req.body.accepted;
     const senderId = new ObjectId(req.body.sender);
     const receiverId = new ObjectId(req.body.receiver);
+    const receiverName = req.body.name;
+    const senderTokens = (await userCollection.findOne({"_id" : senderId})).tokens;
     userCollection.updateOne(
         {"_id" : receiverId},
         {$pull : { "friendReqs" : senderId } }
@@ -300,6 +311,17 @@ app.post('/determineFriend', bp.json(), (req, res) => {
             {"_id" : senderId},
             {$push : { "friends" : receiverId } }
         )
+        let notifs = [];
+        senderTokens.forEach(token => {
+            notifs.push({
+                to: token,
+                sound: 'default',
+                title: 'Friend Request Accepted',
+                body: `${receiverName} accepted your friend request`
+            })
+        })
+
+        sendNotifs(notifs, expoServer);
     }
     res.send("OK")
 })
@@ -376,7 +398,7 @@ app.post('/populateFriends', bp.json(), async (req, res) => {
 app.post('addEventSuggestions', async (req, res) => {
     const userId = req.body.user;
     const userDoc = await userCollection.findOne({ "_id" : new ObjectId(userId) });
-    
+    // continue adding logic here...
 })
 
 /**
