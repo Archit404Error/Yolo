@@ -20,11 +20,20 @@ var db, chatCollection, eventCollection, userCollection, expoServer;
  * Returns JSON data of event with a given id
  */
 app.get('/event/:id', (req, res) => {
-    if (!req.params.id) return res.status(500).send(error);
+    if (!req.params.id) return res.status(500).send("Incorrectly formatted request");
     eventCollection.findOne({"_id" : new ObjectId(req.params.id)}, (error, result) => {
         if (error) return res.status(500).send(error);
         res.send(result);
     })
+})
+
+/**
+ * Returns JSON data of all events created by a specific user
+ */
+app.get('/createdEvents/:userId', async (req, res) => {
+    if (!req.params.userId) return res.status(500).send("Incorrectly formatted request");
+    const eventDataList = await eventCollection.find({"creator" : new ObjectId(req.params.userId)}).toArray();
+    res.send(eventDataList);
 })
 
 /** 
