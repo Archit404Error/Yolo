@@ -446,7 +446,7 @@ app.post('/eventRSVP', bp.json(), async (req, res) => {
             .then(found => {
                 userCollection.updateOne(
                     {"_id" : userId},
-                    {$push : { "chats" : found._id }}
+                    {$push : { "chats" : new ObjectId(found.value._id) }}
                 )
             })
     } else {
