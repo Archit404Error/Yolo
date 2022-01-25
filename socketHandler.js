@@ -8,16 +8,23 @@ export default class {
 
     init() {
         this.io.on("connection", (socket) => {
-            console.log("A user connected");
+            // Join rooms based on user's Chat Ids
             socket.handshake.query.chatList.split(",").map(id => socket.join(id))
-            socket.join(socket.handshake.query.chatId)
-            console.log(`Joined room ${socket.handshake.query.chatId}`)
+            // Join user id room to communicate updates to client app
+            const userId = socket.handshake.query.user;
+            socket.join(userId);
+            console.log(userId)
+
             socket.on("messageSent", (messageData) => {
-                console.log(`${messageData.sender} : ${messageData.message}`)
                 this.io.to(messageData.chat).emit("messageSent", messageData.chat);
             })
+
+            socket.on("eventsUpdated", () => {
+                console.log("Sending event updates")
+                this.io.to(userId).emit("eventsUpdated");
+            })
+
             socket.on("disconnect", () => {
-                console.log("User disconnected")
                 socket.disconnect();
             })
         })
