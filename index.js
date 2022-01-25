@@ -216,7 +216,7 @@ app.post('/create', bp.json(), (req, res) => {
         "members" : []
     })
 
-    res.send("OK")
+    res.send(eventId)
 })
 
 /**
