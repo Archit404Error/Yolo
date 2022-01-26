@@ -15,6 +15,7 @@ const locationFinder = nodeGeocoder({
 const uri = process.env.MONGO_URI;
 const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
 var db, chatCollection, eventCollection, userCollection, expoServer;
+var handler;
 
 /** 
  * Returns JSON data of event with a given id
@@ -184,6 +185,8 @@ app.post('/create', bp.json(), (req, res) => {
     let latitude = 0;
 
     const eventId = new ObjectId();
+
+    handler.sendUserEvent(req.body.creator, "userCreatedEvent");
 
     locationFinder.geocode(loc)
         .then(res => res[0])
@@ -487,4 +490,4 @@ const server = app.listen(process.env.PORT || 8080, () => {
     })
 })
 
-const handler = new socketHandler(server);
+handler = new socketHandler(server);
