@@ -13,7 +13,6 @@ export default class {
             // Join user id room to communicate updates to client app
             const userId = socket.handshake.query.user;
             socket.join(userId);
-            console.log(userId)
 
             socket.on("messageSent", (messageData) => {
                 this.io.to(messageData.chat).emit("messageSent", messageData.chat);
@@ -28,5 +27,14 @@ export default class {
                 socket.disconnect();
             })
         })
+    }
+
+    /**
+     * Send user a simple event notif
+     * @param {String} id the user's id
+     * @param {String} event the name of the event
+     */
+    sendUserEvent(id, event) {
+        this.io.to(id).emit(event);
     }
 }
