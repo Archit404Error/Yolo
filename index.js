@@ -339,6 +339,23 @@ app.post('/determineFriend', bp.json(), async (req, res) => {
 })
 
 /**
+ * Enables user to send invite to a friend
+ */
+app.post('/inviteFriend', bp.json(), (req, res) => {
+    const senderId = new ObjectId(req.body.sender);
+    const eventId = new ObjectId(req.body.event);
+    const friendId = new ObjectId(req.body.friend);
+
+    userCollection.updateOne(
+        {"_id" : friendId},
+        { $push: { "pendingEvents" : eventId } }
+    )
+
+    // Eventually we will store user notifs so that people can see who invited them
+    res.send("OK")
+})
+
+/**
  * A resource-heavy time consuming friend suggestion algorithm
  */
 app.post('/populateFriends', bp.json(), async (req, res) => {

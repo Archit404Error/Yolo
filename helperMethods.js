@@ -23,8 +23,6 @@ export const pointDist = (lat1, lon1, lat2, lon2) => {
  * @param {Object} expoServer the server object to connect with
  */
 export const sendNotifs = async (notifs, expoServer) => {
-    console.log("was called");
-    console.log(notifs);
     let chunks = expoServer.chunkPushNotifications(notifs);
     let tickets = [];
 
