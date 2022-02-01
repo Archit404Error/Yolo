@@ -18,11 +18,6 @@ export default class {
                 this.io.to(messageData.chat).emit("messageSent", messageData.chat);
             })
 
-            socket.on("eventsUpdated", () => {
-                console.log("Sending event updates")
-                this.io.to(userId).emit("eventsUpdated");
-            })
-
             socket.on("disconnect", () => {
                 socket.disconnect();
             })
