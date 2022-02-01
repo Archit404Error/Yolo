@@ -469,6 +469,7 @@ app.post('/eventRSVP', bp.json(), async (req, res) => {
                     {"_id" : userId},
                     {$push : { "chats" : new ObjectId(found.value._id) }}
                 )
+                handler.sendUserEvent(req.body.user, "eventsUpdated");
             })
     } else if (action == "viewed") {
         userCollection.updateOne(
@@ -491,6 +492,10 @@ app.post('/eventRSVP', bp.json(), async (req, res) => {
             {$addToSet : { "rejecters" : userId }}
         )
     }
+
+    const creator = (await eventCollection.findOne({"_id" : eventId})).creator;
+    handler.sendUserEvent(await creator, "RSVPOcurred")
+
     res.send("OK")
 })
 
