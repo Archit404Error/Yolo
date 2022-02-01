@@ -478,7 +478,7 @@ app.post('/eventRSVP', bp.json(), async (req, res) => {
         )
 
         eventCollection.updateOne(
-            {"_id" : userId},
+            {"_id" : eventId},
             {$addToSet : { "viewers" : userId }}
         )
     } else {
@@ -488,7 +488,7 @@ app.post('/eventRSVP', bp.json(), async (req, res) => {
         )
 
         eventCollection.updateOne(
-            {"_id" : userId},
+            {"_id" : eventId},
             {$addToSet : { "rejecters" : userId }}
         )
     }
