@@ -450,6 +450,7 @@ app.post('/eventRSVP', bp.json(), async (req, res) => {
             {"_id" : userId},
             {$push : { "acceptedEvents" : eventId }}
         )
+
         eventCollection.updateOne(
             {"_id" : eventId},
             {$push : { "attendees" : userId }}
@@ -469,10 +470,25 @@ app.post('/eventRSVP', bp.json(), async (req, res) => {
                     {$push : { "chats" : new ObjectId(found.value._id) }}
                 )
             })
+    } else if (action == "viewed") {
+        userCollection.updateOne(
+            {"_id" : userId},
+            {$addToSet : { "viewedEvents" : eventId }}
+        )
+
+        eventCollection.updateOne(
+            {"_id" : userId},
+            {$addToSet : { "viewers" : userId }}
+        )
     } else {
         userCollection.updateOne(
             {"_id" : userId},
             {$push : { "rejectedEvents" : eventId }}
+        )
+
+        eventCollection.updateOne(
+            {"_id" : userId},
+            {$addToSet : { "rejecters" : userId }}
         )
     }
     res.send("OK")
