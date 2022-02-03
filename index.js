@@ -208,7 +208,9 @@ app.post('/create', bp.json(), (req, res) => {
                 "latitude" : latitude,
                 "longitude" : longitude,
                 "other" : other,
-                "attendees": [],
+                "attendees" : [],
+                "viewers" : [],
+                "rejecters" : []
             })
         })
     
@@ -441,10 +443,7 @@ app.post('/eventRSVP', bp.json(), async (req, res) => {
     if (!userId || !eventId || !action) {
         return res.status(500).send("Invalid params supplied")
     }
-    userCollection.updateOne(
-        {"_id" : userId},
-        {$pull : { "pendingEvents" : eventId }}
-    )
+
     if (action === "accepted") {
         userCollection.updateOne(
             {"_id" : userId},
@@ -481,6 +480,8 @@ app.post('/eventRSVP', bp.json(), async (req, res) => {
             {"_id" : eventId},
             {$addToSet : { "viewers" : userId }}
         )
+
+        return;
     } else {
         userCollection.updateOne(
             {"_id" : userId},
@@ -492,6 +493,11 @@ app.post('/eventRSVP', bp.json(), async (req, res) => {
             {$addToSet : { "rejecters" : userId }}
         )
     }
+
+    userCollection.updateOne(
+        {"_id" : userId},
+        {$pull : { "pendingEvents" : eventId }}
+    )
 
     const creator = (await eventCollection.findOne({"_id" : eventId})).creator;
     handler.sendUserEvent(await creator, "RSVPOcurred")
