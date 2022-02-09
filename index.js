@@ -146,7 +146,7 @@ app.post('/register', bp.json(), (req, res) => {
         "pendingEvents" : [],
         "chats": [],
         "friends" : [],
-        "friendReqs" : [],
+        "notifications" : [],
         "profilePic" : "https://firebasestorage.googleapis.com/v0/b/eventapp-73ba7.appspot.com/o/Profiles%2Fdefault_user.png?alt=media&token=c4f609d3-a714-4d70-8383-ac59368ac640",
         "tokens" : []
     }
@@ -226,6 +226,7 @@ app.post('/create', bp.json(), (req, res) => {
 
 /**
  * Records a message sent by a user in a chat
+ * Sends push notif
  */
 app.post('/sendMessage', bp.json(), (req, res) => {
     const senderName = req.body.sender;
@@ -269,6 +270,7 @@ app.post('/sendMessage', bp.json(), (req, res) => {
 /**
  * Sends / Revokes a friend request
  * Requires: sender (String ObjId), name (String), and receiver (String ObjId) are sent in the request
+ * Sends push notif
  */
 app.post('/friendReq', bp.json(), async (req, res) => {
     const senderId = new ObjectId(req.body.sender);
@@ -280,7 +282,15 @@ app.post('/friendReq', bp.json(), async (req, res) => {
     if (wantToFriend) {
         userCollection.updateOne(
             {"_id" : new ObjectId(receiverId)},
-            {$push : { "friendReqs" : new ObjectId(senderId) }}
+            {
+                $push : 
+                { 
+                    "notifications" : {
+                        type: "friend",
+                        sender: new ObjectId(senderId)
+                    } 
+                }
+            }
         )
         let notifs = [];
         (await receiverTokens).forEach(token => {
@@ -296,7 +306,14 @@ app.post('/friendReq', bp.json(), async (req, res) => {
     } else {
         userCollection.updateOne(
             {"_id" : new ObjectId(receiverId)},
-            {$pull : { "friendReqs" : new ObjectId(senderId) }}
+            {$pull : 
+                { 
+                    "notifications" : {
+                        type: "friend",
+                        sender: new ObjectId(senderId)
+                    } 
+                }
+            }
         )
     }
     res.send("OK")
@@ -305,6 +322,7 @@ app.post('/friendReq', bp.json(), async (req, res) => {
 /**
  * Deals with user accepting/rejecting a request
  * Requires: accepted (boolean), sender (String), name(String), and receiver (String) are sent in the request
+ * Sends push notif (if accepted)
  */
 app.post('/determineFriend', bp.json(), async (req, res) => {
     const accepted = req.body.accepted;
@@ -314,7 +332,14 @@ app.post('/determineFriend', bp.json(), async (req, res) => {
     const senderTokens = (await userCollection.findOne({"_id" : senderId})).tokens;
     userCollection.updateOne(
         {"_id" : receiverId},
-        {$pull : { "friendReqs" : senderId } }
+        {$pull : 
+            { 
+                "notifications" : {
+                    type: "friend",
+                    sender: senderId
+                } 
+            } 
+        }
     )
     if (accepted) {
         userCollection.updateOne(
@@ -323,7 +348,15 @@ app.post('/determineFriend', bp.json(), async (req, res) => {
         )
         userCollection.updateOne(
             {"_id" : senderId},
-            {$push : { "friends" : receiverId } }
+            {$push : 
+                { 
+                    "friends" : receiverId,
+                    "notifications" : {
+                        type: "newfriend",
+                        friend: receiverId
+                    }
+                } 
+            }
         )
         let notifs = [];
         senderTokens.forEach(token => {
@@ -341,19 +374,45 @@ app.post('/determineFriend', bp.json(), async (req, res) => {
 })
 
 /**
- * Enables user to send invite to a friend
+ * Enables user to send invite to a friend for an event
+ * Sends push notif
  */
 app.post('/inviteFriend', bp.json(), (req, res) => {
     const senderId = new ObjectId(req.body.sender);
-    const eventId = new ObjectId(req.body.event);
+    const senderName = req.body.senderName;
     const friendId = new ObjectId(req.body.friend);
+    const eventId = new ObjectId(req.body.event);
+    const eventName = req.body.eventName;
 
-    userCollection.updateOne(
+    userCollection.findOneAndUpdate(
         {"_id" : friendId},
-        { $push: { "pendingEvents" : eventId } }
+        { 
+            $push: { 
+                "pendingEvents" : eventId,
+                "notifications" : {
+                    type: "invite",
+                    sender: senderId,
+                    senderName: senderName,
+                    event: eventId,
+                    eventName: eventName
+                }
+            } 
+        }
     )
+        .then(friendDoc => {
+            let notifs = [];
+            friendDoc.tokens.forEach(token => {
+                notifs.push({
+                    to: token,
+                    sound: 'default',
+                    title: 'New Event Invitation',
+                    body: `${senderName} just invited you to attend ${eventName}!`,
+                    data: {},
+                })
+            })
+            sendNotifs(notifs, expoServer)
+        })
 
-    // Eventually we will store user notifs so that people can see who invited them
     res.send("OK")
 })
 
