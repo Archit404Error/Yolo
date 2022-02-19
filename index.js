@@ -181,7 +181,7 @@ app.post('/create', bp.json(), (req, res) => {
     const endDate = req.body.endDate;
     const tags = req.body.tags.split("|");
     const other = req.body.other;
-    const public = req.body.public;
+    const isPublic = req.body.public;
     let longitude = 0;
     let latitude = 0;
 
@@ -212,7 +212,7 @@ app.post('/create', bp.json(), (req, res) => {
                 "attendees": [],
                 "viewers": [],
                 "rejecters": [],
-                "public": public
+                "public": isPublic
             })
         })
 
