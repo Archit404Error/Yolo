@@ -9,7 +9,7 @@ import { pointDist, sendNotifs } from './helperMethods.js';
 
 const app = express();
 const locationFinder = nodeGeocoder({
-    provider : 'openstreetmap',
+    provider: 'openstreetmap',
 })
 
 const uri = process.env.MONGO_URI;
@@ -22,7 +22,7 @@ var handler;
  */
 app.get('/event/:id', (req, res) => {
     if (!req.params.id) return res.status(500).send("Incorrectly formatted request");
-    eventCollection.findOne({"_id" : new ObjectId(req.params.id)}, (error, result) => {
+    eventCollection.findOne({ "_id": new ObjectId(req.params.id) }, (error, result) => {
         if (error) return res.status(500).send(error);
         res.send(result);
     })
@@ -33,7 +33,7 @@ app.get('/event/:id', (req, res) => {
  */
 app.get('/createdEvents/:userId', async (req, res) => {
     if (!req.params.userId) return res.status(500).send("Incorrectly formatted request");
-    const eventDataList = await eventCollection.find({"creator" : new ObjectId(req.params.userId)}).toArray();
+    const eventDataList = await eventCollection.find({ "creator": new ObjectId(req.params.userId) }).toArray();
     res.send(eventDataList);
 })
 
@@ -42,7 +42,7 @@ app.get('/createdEvents/:userId', async (req, res) => {
  */
 app.get('/user/:id', (req, res) => {
     if (!req.params.id) return res.status(500).send("ID Error");
-    userCollection.findOne({"_id" : new ObjectId(req.params.id)}, (error, result) => {
+    userCollection.findOne({ "_id": new ObjectId(req.params.id) }, (error, result) => {
         if (error) return res.status(500).send(error);
         res.send(result);
     })
@@ -53,7 +53,7 @@ app.get('/user/:id', (req, res) => {
  */
 app.get('/userChats/:id', async (req, res) => {
     if (!req.params.id) return res.status(500).send("ID Error");
-    const found = chatCollection.find({"members._id" : new ObjectId(req.params.id)});
+    const found = chatCollection.find({ "members._id": new ObjectId(req.params.id) });
     if ((await found.count()) == 0) return res.send([])
     res.send(await found.toArray())
 })
@@ -63,7 +63,7 @@ app.get('/userChats/:id', async (req, res) => {
  */
 app.get('/chat/:id', (req, res) => {
     if (!req.params.id) return res.status(500).send("ID Error");
-    chatCollection.findOne({"_id" : new ObjectId(req.params.id)}, (error, result) => {
+    chatCollection.findOne({ "_id": new ObjectId(req.params.id) }, (error, result) => {
         if (error) return res.status(500).send(error);
         res.send(result);
     })
@@ -87,7 +87,7 @@ app.get('/chatDetails/:id', async (req, res) => {
             $unwind: "$eventDetails"
         },
         {
-            $match: { "_id" : new ObjectId(req.params.id) }
+            $match: { "_id": new ObjectId(req.params.id) }
         }
     ]).next();
     res.send(joined)
@@ -96,24 +96,24 @@ app.get('/chatDetails/:id', async (req, res) => {
 /**
  * Returns a list consisting of ids of a user's friends who posted stories
  */
- app.get('/storyIds/:id', async (req, res) => {
-     if (!req.params.id) return res.status(500).send("No id supplied!");
-     const result = await userCollection.aggregate([
+app.get('/storyIds/:id', async (req, res) => {
+    if (!req.params.id) return res.status(500).send("No id supplied!");
+    const result = await userCollection.aggregate([
         {
             $match: {
-                "friends" : { $all: [new ObjectId(req.params.id)] },
+                "friends": { $all: [new ObjectId(req.params.id)] },
             }
         },
         {
             $project: {
-                "_id" : 1,
-                "storyImage" : { $ifNull : ["$storyImage", null] }
+                "_id": 1,
+                "storyImage": { $ifNull: ["$storyImage", null] }
             }
         }
-     ]).toArray();
-     result.filter(elem => elem.storyImage != null);
-     res.send(result);
- })
+    ]).toArray();
+    result.filter(elem => elem.storyImage != null);
+    res.send(result);
+})
 
 /** 
  * Authenticates users by returning JSON data if auth suceeds, else returns empty response
@@ -122,7 +122,7 @@ app.post('/auth', bp.json(), (req, res) => {
     const username = req.body.username;
     const password = req.body.password;
     if (!username || !password) return res.status(500).send("Authentication Error")
-    userCollection.findOne({"username" : username, "password" : password}, (err, result) => {
+    userCollection.findOne({ "username": username, "password": password }, (err, result) => {
         if (err) return res.status(500).send(err);
         if (result == null) return res.send({});
         res.send(result);
@@ -137,18 +137,18 @@ app.post('/register', bp.json(), (req, res) => {
     const password = req.body.password;
     const name = req.body.name;
     const userData = {
-        "_id" : new ObjectId(),
-        "username" : username,
-        "password" : password,
-        "name" : name,
-        "rejectedEvents" : [],
-        "acceptedEvents" : [],
-        "pendingEvents" : [],
+        "_id": new ObjectId(),
+        "username": username,
+        "password": password,
+        "name": name,
+        "rejectedEvents": [],
+        "acceptedEvents": [],
+        "pendingEvents": [],
         "chats": [],
-        "friends" : [],
-        "notifications" : [],
-        "profilePic" : "https://firebasestorage.googleapis.com/v0/b/eventapp-73ba7.appspot.com/o/Profiles%2Fdefault_user.png?alt=media&token=c4f609d3-a714-4d70-8383-ac59368ac640",
-        "tokens" : []
+        "friends": [],
+        "notifications": [],
+        "profilePic": "https://firebasestorage.googleapis.com/v0/b/eventapp-73ba7.appspot.com/o/Profiles%2Fdefault_user.png?alt=media&token=c4f609d3-a714-4d70-8383-ac59368ac640",
+        "tokens": []
     }
     userCollection.insertOne(userData)
     // send data back to client to be stored
@@ -162,8 +162,8 @@ app.post('/registerPushToken', bp.json(), (req, res) => {
     const userId = req.body.user;
     const token = req.body.token;
     userCollection.updateOne(
-        {"_id" : new ObjectId(userId)},
-        {$addToSet : {"tokens" : token}}
+        { "_id": new ObjectId(userId) },
+        { $addToSet: { "tokens": token } }
     )
     res.send("success")
 })
@@ -179,8 +179,9 @@ app.post('/create', bp.json(), (req, res) => {
     const loc = req.body.location;
     const startDate = req.body.startDate;
     const endDate = req.body.endDate;
-    const tags = req.body.tags;
+    const tags = req.body.tags.split("|");
     const other = req.body.other;
+    const public = req.body.public;
     let longitude = 0;
     let latitude = 0;
 
@@ -196,29 +197,30 @@ app.post('/create', bp.json(), (req, res) => {
         })
         .then(() => {
             eventCollection.insertOne({
-                "_id" : eventId,
-                "creator" : creator,
-                "image" : image,
-                "title" : title,
-                "description" : desc,
-                "location" : loc,
-                "startDate" : startDate,
-                "endDate" : endDate,
-                "tags" : tags,
-                "latitude" : latitude,
-                "longitude" : longitude,
-                "other" : other,
-                "attendees" : [],
-                "viewers" : [],
-                "rejecters" : []
+                "_id": eventId,
+                "creator": creator,
+                "image": image,
+                "title": title,
+                "description": desc,
+                "location": loc,
+                "startDate": startDate,
+                "endDate": endDate,
+                "tags": tags,
+                "latitude": latitude,
+                "longitude": longitude,
+                "other": other,
+                "attendees": [],
+                "viewers": [],
+                "rejecters": [],
+                "public": public
             })
         })
-    
+
     chatCollection.insertOne({
-        "creator" : creator,
-        "event" : eventId,
-        "messages" : [],
-        "members" : []
+        "creator": creator,
+        "event": eventId,
+        "messages": [],
+        "members": []
     })
 
     res.send(eventId)
@@ -244,14 +246,14 @@ app.post('/sendMessage', bp.json(), (req, res) => {
     }
 
     chatCollection.findOneAndUpdate(
-        {"_id" : new ObjectId(chatId)},
-        {$push : { "messages" : messageObj } },
-        {returnNewDocument: true}
+        { "_id": new ObjectId(chatId) },
+        { $push: { "messages": messageObj } },
+        { returnNewDocument: true }
     )
         .then(updatedDoc => {
             let notifs = [];
             for (const member of updatedDoc.value.members) {
-                member.tokens.forEach(token => 
+                member.tokens.forEach(token =>
                     notifs.push({
                         to: token,
                         sound: 'default',
@@ -277,18 +279,18 @@ app.post('/friendReq', bp.json(), async (req, res) => {
     const senderName = req.body.name;
     const receiverId = new ObjectId(req.body.receiver);
     const wantToFriend = req.body.wantToFriend;
-    const receiverTokens = (await userCollection.findOne({"_id" : receiverId})).tokens;
+    const receiverTokens = (await userCollection.findOne({ "_id": receiverId })).tokens;
 
     if (wantToFriend) {
         userCollection.updateOne(
-            {"_id" : new ObjectId(receiverId)},
+            { "_id": new ObjectId(receiverId) },
             {
-                $push : 
-                { 
-                    "notifications" : {
+                $push:
+                {
+                    "notifications": {
                         type: "friend",
                         sender: new ObjectId(senderId)
-                    } 
+                    }
                 }
             }
         )
@@ -305,13 +307,14 @@ app.post('/friendReq', bp.json(), async (req, res) => {
         sendNotifs(notifs, expoServer);
     } else {
         userCollection.updateOne(
-            {"_id" : new ObjectId(receiverId)},
-            {$pull : 
-                { 
-                    "notifications" : {
+            { "_id": new ObjectId(receiverId) },
+            {
+                $pull:
+                {
+                    "notifications": {
                         type: "friend",
                         sender: new ObjectId(senderId)
-                    } 
+                    }
                 }
             }
         )
@@ -329,33 +332,35 @@ app.post('/determineFriend', bp.json(), async (req, res) => {
     const senderId = new ObjectId(req.body.sender);
     const receiverId = new ObjectId(req.body.receiver);
     const receiverName = req.body.name;
-    const senderTokens = (await userCollection.findOne({"_id" : senderId})).tokens;
+    const senderTokens = (await userCollection.findOne({ "_id": senderId })).tokens;
     userCollection.updateOne(
-        {"_id" : receiverId},
-        {$pull : 
-            { 
-                "notifications" : {
+        { "_id": receiverId },
+        {
+            $pull:
+            {
+                "notifications": {
                     type: "friend",
                     sender: senderId
-                } 
-            } 
+                }
+            }
         }
     )
     if (accepted) {
         userCollection.updateOne(
-            {"_id" : receiverId},
-            {$push : { "friends" : senderId }}
+            { "_id": receiverId },
+            { $push: { "friends": senderId } }
         )
         userCollection.updateOne(
-            {"_id" : senderId},
-            {$push : 
-                { 
-                    "friends" : receiverId,
-                    "notifications" : {
+            { "_id": senderId },
+            {
+                $push:
+                {
+                    "friends": receiverId,
+                    "notifications": {
                         type: "newfriend",
                         friend: receiverId
                     }
-                } 
+                }
             }
         )
         let notifs = [];
@@ -385,18 +390,18 @@ app.post('/inviteFriend', bp.json(), (req, res) => {
     const eventName = req.body.eventName;
 
     userCollection.findOneAndUpdate(
-        {"_id" : friendId},
-        { 
-            $push: { 
-                "pendingEvents" : eventId,
-                "notifications" : {
+        { "_id": friendId },
+        {
+            $push: {
+                "pendingEvents": eventId,
+                "notifications": {
                     type: "invite",
                     sender: senderId,
                     senderName: senderName,
                     event: eventId,
                     eventName: eventName
                 }
-            } 
+            }
         }
     )
         .then(friendDoc => {
@@ -424,7 +429,7 @@ app.post('/populateFriends', bp.json(), async (req, res) => {
     // an acquantaince is a friend of a friend
     let acquaintanceOccurrences = {};
     let userFriends = new Set();
-    const friendCursor = userCollection.find({ "friends" : { $all : [new ObjectId(userId)] } })
+    const friendCursor = userCollection.find({ "friends": { $all: [new ObjectId(userId)] } })
     const friendDocs = await friendCursor.toArray();
 
     for (const friendDoc of await friendDocs) {
@@ -442,16 +447,16 @@ app.post('/populateFriends', bp.json(), async (req, res) => {
     }
 
     const pastEventDetails = await userCollection.aggregate([
-        { $match : { "_id" : new ObjectId(userId) } },
-        { 
-            $lookup : {
-                from : "Events",
+        { $match: { "_id": new ObjectId(userId) } },
+        {
+            $lookup: {
+                from: "Events",
                 localField: "acceptedEvents",
                 foreignField: "id",
                 as: "eventDetails"
             }
         },
-        { $project: { "eventDetails" : 1 } }
+        { $project: { "eventDetails": 1 } }
     ]).eventDetails
 
     for (const eventDoc of await pastEventDetails) {
@@ -469,14 +474,14 @@ app.post('/populateFriends', bp.json(), async (req, res) => {
 
     // Store top 5 most occurring acquaintances and remove existing friends
     const topRec = Object.entries(acquaintanceOccurrences)
-                    .sort(([,a], [,b]) => a - b)
-                    .map(freqArr => freqArr[0])
-                    .filter(id => userFriends.has(id))
-                    .filter((elem, index) => index < 5)
+        .sort(([, a], [, b]) => a - b)
+        .map(freqArr => freqArr[0])
+        .filter(id => userFriends.has(id))
+        .filter((elem, index) => index < 5)
 
     userCollection.updateOne(
-        {"_id" : new ObjectId(userId)},
-        { $set : { "friendRecommendations" : topRec } }
+        { "_id": new ObjectId(userId) },
+        { $set: { "friendRecommendations": topRec } }
     )
 
     res.send("Populated")
@@ -487,8 +492,39 @@ app.post('/populateFriends', bp.json(), async (req, res) => {
  */
 app.post('addEventSuggestions', async (req, res) => {
     const userId = req.body.user;
-    const userDoc = await userCollection.findOne({ "_id" : new ObjectId(userId) });
-    // continue adding logic here...
+    const userDoc = await userCollection.findOne({ "_id": new ObjectId(userId) });
+    let acceptedEventWeights = {};
+    let organizerWeights = {};
+    let attendeeEventWeights = {};
+
+    // Use user's accepted events to generate data
+    userDoc.acceptedEvents.forEach(event => {
+        // Find most accepted tags
+        event.tags.forEach(tag => {
+            const weight = 1 / event.tags.length;
+            const count = acceptedEventWeights[tag];
+            acceptedEventWeights[tag] = count ? count + weight : weight;
+        })
+
+        // Store most accepted orgs
+        if (event.organizer.isOrg) {
+            const count = organizerWeights[event.organizer];
+            organizerWeights[event.organizer] = count ? count + 1 : 1;
+        }
+
+        // Find most similar attended events by people who attended this event
+        event.attendees.forEach(attendee => {
+            attendee.acceptedEvents.forEach(attEvent => {
+                let match = 0;
+                for (const tag of attEvent.tags)
+                    match += event.tags.includes(tag)
+                if (match != 0) {
+                    attEvent.similarity = match / event.tags.length;
+                    attendeeEventWeights[attEvent._id] = attEvent;
+                }
+            })
+        })
+    })
 })
 
 /**
@@ -504,61 +540,63 @@ app.post('/eventRSVP', bp.json(), async (req, res) => {
     }
 
     if (action === "accepted") {
+        const eventData = await eventCollection.findOne({ "_id": eventId })
+
         userCollection.updateOne(
-            {"_id" : userId},
-            {$push : { "acceptedEvents" : eventId }}
+            { "_id": userId },
+            { $push: { "acceptedEvents": await eventData } }
         )
 
         eventCollection.updateOne(
-            {"_id" : eventId},
-            {$push : { "attendees" : userId }}
+            { "_id": eventId },
+            { $push: { "attendees": userId } }
         )
-        
+
         const userData = await userCollection.findOne(
-            {"_id" : userId}
+            { "_id": userId }
         )
 
         chatCollection.findOneAndUpdate(
-            {"event" : eventId},
-            {$push : { "members" : await userData }}
+            { "event": eventId },
+            { $push: { "members": await userData } }
         )
             .then(found => {
                 userCollection.updateOne(
-                    {"_id" : userId},
-                    {$push : { "chats" : new ObjectId(found.value._id) }}
+                    { "_id": userId },
+                    { $push: { "chats": new ObjectId(found.value._id) } }
                 )
                 handler.sendUserEvent(req.body.user, "eventsUpdated");
             })
     } else if (action == "viewed") {
         userCollection.updateOne(
-            {"_id" : userId},
-            {$addToSet : { "viewedEvents" : eventId }}
+            { "_id": userId },
+            { $addToSet: { "viewedEvents": eventId } }
         )
 
         eventCollection.updateOne(
-            {"_id" : eventId},
-            {$addToSet : { "viewers" : userId }}
+            { "_id": eventId },
+            { $addToSet: { "viewers": userId } }
         )
 
         return;
     } else {
         userCollection.updateOne(
-            {"_id" : userId},
-            {$push : { "rejectedEvents" : eventId }}
+            { "_id": userId },
+            { $push: { "rejectedEvents": eventId } }
         )
 
         eventCollection.updateOne(
-            {"_id" : eventId},
-            {$addToSet : { "rejecters" : userId }}
+            { "_id": eventId },
+            { $addToSet: { "rejecters": userId } }
         )
     }
 
     userCollection.updateOne(
-        {"_id" : userId},
-        {$pull : { "pendingEvents" : eventId }}
+        { "_id": userId },
+        { $pull: { "pendingEvents": eventId } }
     )
 
-    const creator = (await eventCollection.findOne({"_id" : eventId})).creator;
+    const creator = (await eventCollection.findOne({ "_id": eventId })).creator;
     handler.sendUserEvent(await creator, "RSVPOcurred")
 
     res.send("OK")
@@ -572,13 +610,13 @@ app.post('/uploadStory', bp.json(), (req, res) => {
     const userId = new ObjectId(req.body.user);
     const imageUrl = req.body.image;
     userCollection.updateOne(
-        {"_id" : userId},
-        {$set : { "storyImage" : imageUrl } }
+        { "_id": userId },
+        { $set: { "storyImage": imageUrl } }
     )
 })
 
 app.use((req, res, next) => {
-	res.status(404).send('Unable to find the requested resource!');
+    res.status(404).send('Unable to find the requested resource!');
 });
 
 const server = app.listen(process.env.PORT || 8080, () => {
@@ -589,7 +627,7 @@ const server = app.listen(process.env.PORT || 8080, () => {
         chatCollection = db.collection("Chats");
         eventCollection = db.collection("Events");
         userCollection = db.collection("Users");
-        expoServer = new Expo({ accessToken: process.env.EXPO_TOKEN  });
+        expoServer = new Expo({ accessToken: process.env.EXPO_TOKEN });
     })
 })
 
