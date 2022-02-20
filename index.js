@@ -251,20 +251,8 @@ app.post('/sendMessage', bp.json(), (req, res) => {
         { returnNewDocument: true }
     )
         .then(updatedDoc => {
-            let notifs = [];
-            for (const member of updatedDoc.value.members) {
-                member.tokens.forEach(token =>
-                    notifs.push({
-                        to: token,
-                        sound: 'default',
-                        title: chatName,
-                        body: `${member.name}: ${message}`,
-                        data: {},
-                    })
-                )
-            }
-
-            sendNotifs(notifs, expoServer);
+            for (const member of updatedDoc.value.members)
+                sendNotifs(member.value.tokens, chatName, `${senderName}: ${message}`, expoServer)
         })
     res.send("OK")
 })
@@ -294,17 +282,13 @@ app.post('/friendReq', bp.json(), async (req, res) => {
                 }
             }
         )
-        let notifs = [];
-        (await receiverTokens).forEach(token => {
-            notifs.push({
-                to: token,
-                sound: 'default',
-                title: 'New friend request',
-                body: `${senderName} sent you a friend request`,
-                data: {}
-            })
-        })
-        sendNotifs(notifs, expoServer);
+
+        sendNotifs(
+            await receiverTokens,
+            'New friend request',
+            `${senderName} sent you a friend request`,
+            expoServer
+        )
     } else {
         userCollection.updateOne(
             { "_id": new ObjectId(receiverId) },
@@ -363,17 +347,13 @@ app.post('/determineFriend', bp.json(), async (req, res) => {
                 }
             }
         )
-        let notifs = [];
-        senderTokens.forEach(token => {
-            notifs.push({
-                to: token,
-                sound: 'default',
-                title: 'Friend Request Accepted',
-                body: `${receiverName} accepted your friend request`
-            })
-        })
 
-        sendNotifs(notifs, expoServer);
+        sendNotifs(
+            senderTokens,
+            'Friend Request Accepted',
+            `${receiverName} accepted your friend request`,
+            expoServer
+        )
     }
     res.send("OK")
 })
@@ -405,17 +385,11 @@ app.post('/inviteFriend', bp.json(), (req, res) => {
         }
     )
         .then(friendDoc => {
-            let notifs = [];
-            friendDoc.tokens.forEach(token => {
-                notifs.push({
-                    to: token,
-                    sound: 'default',
-                    title: 'New Event Invitation',
-                    body: `${senderName} just invited you to attend ${eventName}!`,
-                    data: {},
-                })
-            })
-            sendNotifs(notifs, expoServer)
+            sendNotifs(
+                friendDoc.value.tokens, 'New Event Invitation',
+                `${senderName} just invited you to attend ${eventName}!`,
+                expoServer
+            )
         })
 
     res.send("OK")

@@ -10,9 +10,9 @@
 export const pointDist = (lat1, lon1, lat2, lon2) => {
     const degToRad = Math.degToRadI / 180;
     const cos = Math.cos;
-    const angle = 0.5 - cos((lat2 - lat1) * degToRad) / 2 + 
-    cos(lat1 * degToRad) * cos(lat2 * degToRad) * 
-    (1 - cos((lon2 - lon1) * degToRad)) / 2;
+    const angle = 0.5 - cos((lat2 - lat1) * degToRad) / 2 +
+        cos(lat1 * degToRad) * cos(lat2 * degToRad) *
+        (1 - cos((lon2 - lon1) * degToRad)) / 2;
 
     return 7917.509282 * Math.asin(Math.sqrt(angle));
 }
@@ -22,7 +22,7 @@ export const pointDist = (lat1, lon1, lat2, lon2) => {
  * @param {NotifObject[]} notifs an array of notification objects
  * @param {Object} expoServer the server object to connect with
  */
-export const sendNotifs = async (notifs, expoServer) => {
+const sendNotifChunks = async (notifs, expoServer) => {
     let chunks = expoServer.chunkPushNotifications(notifs);
     let tickets = [];
 
@@ -36,4 +36,22 @@ export const sendNotifs = async (notifs, expoServer) => {
         }
         console.log(tickets);
     }
+}
+
+export const sendNotifs = (tokens, title, body, expoServer) => {
+    try {
+        let notifs = [];
+        tokens.forEach(token => {
+            notifs.push({
+                to: token,
+                sound: 'default',
+                title: title,
+                body: body,
+            })
+        })
+
+        sendNotifChunks(notifs, expoServer)
+    }
+    // Simply do nothing if the user has no tokens
+    catch (err) { console.log(err) }
 }
