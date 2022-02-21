@@ -464,7 +464,7 @@ app.post('/populateFriends', bp.json(), async (req, res) => {
 /**
  * Stores a user's event suggestions
  */
-app.post('addEventSuggestions', async (req, res) => {
+app.post('/addEventSuggestions', async (req, res) => {
     const userId = req.body.user;
     const userDoc = await userCollection.findOne({ "_id": new ObjectId(userId) });
     let acceptedEventWeights = {};
@@ -587,6 +587,30 @@ app.post('/uploadStory', bp.json(), (req, res) => {
         { "_id": userId },
         { $set: { "storyImage": imageUrl } }
     )
+})
+
+/**
+ * Dummy endpoint used to repopulate pending events for given user when testing
+ */
+app.post('/dummyEvents', bp.json(), (req, res) => {
+    const userId = new ObjectId(req.body.user);
+    userCollection.updateOne(
+        { "_id": userId },
+        {
+            $push: {
+                "pendingEvents": {
+                    $each: [
+                        new ObjectId("61c53b35d5a5c3d50bfca80f"),
+                        new ObjectId("61c6ad10a4df23bbaa6c3f37"),
+                        new ObjectId("61e751bf335d915168795d6c"),
+                        new ObjectId("61e9fa18cd57906abf1c091a"),
+                        new ObjectId("61e9fb59cd57906abf1c091e")
+                    ]
+                }
+            }
+        }
+    )
+    res.send("OK")
 })
 
 app.use((req, res, next) => {
