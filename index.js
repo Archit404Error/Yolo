@@ -252,7 +252,7 @@ app.post('/sendMessage', bp.json(), (req, res) => {
     )
         .then(updatedDoc => {
             for (const member of updatedDoc.value.members)
-                sendNotifs(member.value.tokens, chatName, `${senderName}: ${message}`, expoServer)
+                sendNotifs(member.tokens, chatName, `${senderName}: ${message}`, expoServer)
         })
     res.send("OK")
 })
