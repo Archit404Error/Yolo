@@ -1,7 +1,7 @@
 import { MongoClient, ObjectId } from 'mongodb';
 import { Expo } from 'expo-server-sdk';
 import bp from 'body-parser';
-import express from 'express';
+import express, { query } from 'express';
 import nodeGeocoder from 'node-geocoder';
 
 import socketHandler from './socketHandler.js';
@@ -114,6 +114,70 @@ app.get('/storyIds/:id', async (req, res) => {
     result.filter(elem => elem.storyImage != null);
     res.send(result);
 })
+
+app.get('/searchSuggestions/:query', async (req, res) => {
+    // console.log(req.params.query);
+    // const userRes = await userCollection.find({
+    //     $or: [
+    //         { "username": { $regex: `${req.params.query}` } },
+    //         { "name": { $regex: `${req.params.query}` } }
+    //     ]
+    // }).toArray();
+    // const eventRes = await eventCollection.find({
+    //     $or: [
+    //         { "title": { $regex: `${req.params.query}` } },
+    //         { "location": { $regex: `${req.params.query}` } }
+    //     ]
+    // }).toArray();
+    // res.send(await userRes);
+    const userForUsernameIds = await userCollection.aggregate([
+        {
+            $match: {
+                "username": { $regex: `${req.params.query}` },
+            }
+        },
+        {
+            $project: {
+                "_id": 1,
+            }
+        }
+    ]).toArray();
+
+    const userForNameIds = await userCollection.aggregate([
+        {
+            $match: {
+                "name": { $regex: `${req.params.query}` },
+            }
+        },
+        {
+            $project: {
+                "_id": 1,
+            }
+        }
+    ]).toArray();
+    const eventIds = await eventCollection.aggregate([
+        {
+            $match: {
+                "title": { $regex: `${req.params.query}` },
+                "location": { $regex: `${req.params.query}` },
+            }
+        },
+        {
+            $project: {
+                "_id": 1,
+            }
+        }
+    ]).toArray();
+
+    const finalRes = new Set([
+        ...userForNameIds.map(userId => userId._id.toString()),
+        ...eventIds.map(userId => userId._id.toString()),
+        ...userForUsernameIds.map(userId => userId._id.toString())
+        ]
+    );
+    res.send(Array.from(finalRes));
+});
+
 
 /** 
  * Authenticates users by returning JSON data if auth suceeds, else returns empty response
@@ -612,6 +676,8 @@ app.post('/dummyEvents', bp.json(), (req, res) => {
     )
     res.send("OK")
 })
+
+
 
 app.use((req, res, next) => {
     res.status(404).send('Unable to find the requested resource!');
