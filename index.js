@@ -119,21 +119,21 @@ app.get('/storyIds/:id', async (req, res) => {
  * Returns a set of relevant event and user ids when a user searches for an event or a user.
  */
 app.get('/searchSuggestions/:query', async (req, res) => {
-    const userNameIds = await userCollection.aggregate([
-        {
-            $match: {
-                "username": { $regex: `${req.params.query}`, $options:'i'  },
-            }
-        },
-        {
-            $project: {
-                "_id": 1,
-                "username":1,
-                "name":1,
-                "profilePic":1
-            }
-        }
-    ]).toArray();
+    // const userNameIds = await userCollection.aggregate([
+    //     {
+    //         $match: {
+    //             "username": { $regex: `${req.params.query}`, $options:'i'  },
+    //         }
+    //     },
+    //     {
+    //         $project: {
+    //             "_id": 1,
+    //             "username":1,
+    //             "name":1,
+    //             "profilePic":1
+    //         }
+    //     }
+    // ]).toArray();
 
     const nameIds = await userCollection.aggregate([
         {
@@ -165,23 +165,8 @@ app.get('/searchSuggestions/:query', async (req, res) => {
             }
         }
     ]).toArray();
-
-    const finalRes = new Set([
-        ...nameIds,
-        ...userNameIds
-        ]
-    );
-    let returnArr = [];
-    for (const elem of nameIds){
-        if(!finalRes.has(elem._id))
-            returnArr.push(elem);
-    }
-    for (const elem of userNameIds){
-        if(!finalRes.has(elem._id))
-            returnArr.push(elem);
-    }
     console.log(eventIds)
-    returnArr = [...returnArr, ...eventIds]
+    let returnArr = [...eventIds, ...nameIds]
     res.send(Array.from(returnArr));
 });
 
