@@ -17,7 +17,7 @@ const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology:
 var db, chatCollection, eventCollection, userCollection, expoServer;
 var handler;
 
-/** 
+/**
  * Returns JSON data of event with a given id
  */
 app.get('/event/:id', (req, res) => {
@@ -37,7 +37,7 @@ app.get('/createdEvents/:userId', async (req, res) => {
     res.send(eventDataList);
 })
 
-/** 
+/**
  * Returns JSON data of user with a given id
  */
 app.get('/user/:id', (req, res) => {
@@ -58,7 +58,7 @@ app.get('/userChats/:id', async (req, res) => {
     res.send(await found.toArray())
 })
 
-/** 
+/**
  * Returns JSON data of chat with a given id
  */
 app.get('/chat/:id', (req, res) => {
@@ -115,71 +115,78 @@ app.get('/storyIds/:id', async (req, res) => {
     res.send(result);
 })
 
+/**
+ * Returns a set of relevant event and user ids when a user searches for an event or a user.
+ */
 app.get('/searchSuggestions/:query', async (req, res) => {
-    // console.log(req.params.query);
-    // const userRes = await userCollection.find({
-    //     $or: [
-    //         { "username": { $regex: `${req.params.query}` } },
-    //         { "name": { $regex: `${req.params.query}` } }
-    //     ]
-    // }).toArray();
-    // const eventRes = await eventCollection.find({
-    //     $or: [
-    //         { "title": { $regex: `${req.params.query}` } },
-    //         { "location": { $regex: `${req.params.query}` } }
-    //     ]
-    // }).toArray();
-    // res.send(await userRes);
-    const userForUsernameIds = await userCollection.aggregate([
+    const userNameIds = await userCollection.aggregate([
         {
             $match: {
-                "username": { $regex: `${req.params.query}` },
+                "username": { $regex: `${req.params.query}`, $options:'i'  },
             }
         },
         {
             $project: {
                 "_id": 1,
+                "username":1,
+                "name":1,
+                "profilePic":1
             }
         }
     ]).toArray();
 
-    const userForNameIds = await userCollection.aggregate([
+    const nameIds = await userCollection.aggregate([
         {
             $match: {
-                "name": { $regex: `${req.params.query}` },
+                "name": { $regex: `${req.params.query}`, $options:'i'  },
             }
         },
         {
             $project: {
                 "_id": 1,
+                "username":1,
+                "name":1,
+                "profilePic":1
             }
         }
     ]).toArray();
     const eventIds = await eventCollection.aggregate([
         {
             $match: {
-                "title": { $regex: `${req.params.query}` },
-                "location": { $regex: `${req.params.query}` },
+                "title": { $regex: `${req.params.query}`, $options:'i' }
             }
         },
         {
             $project: {
                 "_id": 1,
+                "title":1,
+                "image":1,
+                "location":1
             }
         }
     ]).toArray();
 
     const finalRes = new Set([
-        ...userForNameIds.map(userId => userId._id.toString()),
-        ...eventIds.map(userId => userId._id.toString()),
-        ...userForUsernameIds.map(userId => userId._id.toString())
+        ...nameIds,
+        ...userNameIds
         ]
     );
-    res.send(Array.from(finalRes));
+    let returnArr = [];
+    for (const elem of nameIds){
+        if(!finalRes.has(elem._id))
+            returnArr.push(elem);
+    }
+    for (const elem of userNameIds){
+        if(!finalRes.has(elem._id))
+            returnArr.push(elem);
+    }
+    console.log(eventIds)
+    returnArr = [...returnArr, ...eventIds]
+    res.send(Array.from(returnArr));
 });
 
 
-/** 
+/**
  * Authenticates users by returning JSON data if auth suceeds, else returns empty response
  */
 app.post('/auth', bp.json(), (req, res) => {
