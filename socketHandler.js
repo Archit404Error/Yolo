@@ -18,6 +18,11 @@ export default class {
                 this.io.to(messageData.chat).emit("messageSent", messageData.chat);
             })
 
+            socket.on("joinRooms", (roomList) => {
+                // join all listed rooms (ignores rooms that this socket has already joined)
+                roomList.forEach(room => socket.join(room))
+            })
+
             socket.on("disconnect", () => {
                 socket.disconnect();
             })
