@@ -119,53 +119,36 @@ app.get('/storyIds/:id', async (req, res) => {
  * Returns a set of relevant event and user ids when a user searches for an event or a user.
  */
 app.get('/searchSuggestions/:query', async (req, res) => {
-    // const userNameIds = await userCollection.aggregate([
-    //     {
-    //         $match: {
-    //             "username": { $regex: `${req.params.query}`, $options:'i'  },
-    //         }
-    //     },
-    //     {
-    //         $project: {
-    //             "_id": 1,
-    //             "username":1,
-    //             "name":1,
-    //             "profilePic":1
-    //         }
-    //     }
-    // ]).toArray();
-
     const nameIds = await userCollection.aggregate([
         {
             $match: {
-                "name": { $regex: `${req.params.query}`, $options:'i'  },
+                "name": { $regex: `${req.params.query}`, $options: 'i' },
             }
         },
         {
             $project: {
                 "_id": 1,
-                "username":1,
-                "name":1,
-                "profilePic":1
+                "username": 1,
+                "name": 1,
+                "profilePic": 1
             }
         }
     ]).toArray();
     const eventIds = await eventCollection.aggregate([
         {
             $match: {
-                "title": { $regex: `${req.params.query}`, $options:'i' }
+                "title": { $regex: `${req.params.query}`, $options: 'i' }
             }
         },
         {
             $project: {
                 "_id": 1,
-                "title":1,
-                "image":1,
-                "location":1
+                "title": 1,
+                "image": 1,
+                "location": 1
             }
         }
     ]).toArray();
-    console.log(eventIds)
     let returnArr = [...eventIds, ...nameIds]
     res.send(Array.from(returnArr));
 });
@@ -463,6 +446,7 @@ app.post('/populateFriends', bp.json(), async (req, res) => {
     const friendDocs = await friendCursor.toArray();
 
     for (const friendDoc of await friendDocs) {
+        console.log(friendDoc._id)
         userFriends.add(friendDoc._id);
         friendDoc.friends.forEach(id => {
             if (id != userId) {
@@ -476,37 +460,29 @@ app.post('/populateFriends', bp.json(), async (req, res) => {
         })
     }
 
-    const pastEventDetails = await userCollection.aggregate([
-        { $match: { "_id": new ObjectId(userId) } },
-        {
-            $lookup: {
-                from: "Events",
-                localField: "acceptedEvents",
-                foreignField: "id",
-                as: "eventDetails"
-            }
-        },
-        { $project: { "eventDetails": 1 } }
-    ]).eventDetails
+    userCollection.findOne({ "_id": new ObjectId(userId) }, (err, res) => {
+        const pastEventDetails = res.acceptedEvents
+        for (const eventDoc of pastEventDetails) {
+            eventDoc.attendees.forEach(id => {
+                if (id != userId) {
+                    // Compute weight based on number of attendees of event
+                    const weight = 1 / eventDoc.attendees.length;
+                    if (acquaintanceOccurrences[id])
+                        acquaintanceOccurrences[id] += weight;
+                    else
+                        acquaintanceOccurrences[id] = weight;
+                }
+            })
+        }
+    })
 
-    for (const eventDoc of await pastEventDetails) {
-        eventDoc.attendees.forEach(id => {
-            if (id != userId) {
-                // Compute weight based on number of attendees of event
-                const weight = 1 / eventDoc.attendees.length;
-                if (acquaintanceOccurrences[id])
-                    acquaintanceOccurrences[id] += weight;
-                else
-                    acquaintanceOccurrences[id] = weight;
-            }
-        })
-    }
+    console.log(acquaintanceOccurrences)
 
     // Store top 5 most occurring acquaintances and remove existing friends
     const topRec = Object.entries(acquaintanceOccurrences)
         .sort(([, a], [, b]) => a - b)
         .map(freqArr => freqArr[0])
-        .filter(id => userFriends.has(id))
+        .filter(id => !userFriends.has(id))
         .filter((elem, index) => index < 5)
 
     userCollection.updateOne(
@@ -514,13 +490,13 @@ app.post('/populateFriends', bp.json(), async (req, res) => {
         { $set: { "friendRecommendations": topRec } }
     )
 
-    res.send("Populated")
+    res.send(topRec)
 })
 
 /**
  * Stores a user's event suggestions
  */
-app.post('/addEventSuggestions', async (req, res) => {
+app.post('/addEventSuggestions', bp.json(), async (req, res) => {
     const userId = req.body.user;
     const userDoc = await userCollection.findOne({ "_id": new ObjectId(userId) });
     let acceptedEventWeights = {};
@@ -536,25 +512,27 @@ app.post('/addEventSuggestions', async (req, res) => {
             acceptedEventWeights[tag] = count ? count + weight : weight;
         })
 
-        // Store most accepted orgs
-        if (event.organizer.isOrg) {
-            const count = organizerWeights[event.organizer];
-            organizerWeights[event.organizer] = count ? count + 1 : 1;
-        }
+        const count = organizerWeights[event.creator];
+        organizerWeights[event.creator] = count ? count + 1 : 1;
 
         // Find most similar attended events by people who attended this event
         event.attendees.forEach(attendee => {
-            attendee.acceptedEvents.forEach(attEvent => {
-                let match = 0;
-                for (const tag of attEvent.tags)
-                    match += event.tags.includes(tag)
-                if (match != 0) {
-                    attEvent.similarity = match / event.tags.length;
-                    attendeeEventWeights[attEvent._id] = attEvent;
-                }
+            userCollection.findOne({ "_id": attendee }, (err, attendeeDoc) => {
+                if (err) throw err
+                attendeeDoc.acceptedEvents.forEach(attEvent => {
+                    let match = 0;
+                    for (const tag of attEvent.tags)
+                        match += event.tags.includes(tag)
+                    if (match != 0) {
+                        let similarity = match / event.tags.length;
+                        attendeeEventWeights[attEvent._id] = similarity;
+                        console.log(attendeeEventWeights)
+                    }
+                })
             })
         })
     })
+    res.send(attendeeEventWeights)
 })
 
 /**
