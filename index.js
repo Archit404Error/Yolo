@@ -5,6 +5,7 @@ import express, { query } from 'express';
 import nodeGeocoder from 'node-geocoder';
 
 import socketHandler from './socketHandler.js';
+import { calculateTagWeights, calculateOrganizerWeights, calculateAttendeeEventWeights } from './helperMethods.js';
 import { pointDist, sendNotifs } from './helperMethods.js';
 
 const app = express();
@@ -275,9 +276,8 @@ app.post('/sendMessage', bp.json(), (req, res) => {
     const chatId = req.body.chat;
     const chatName = req.body.title;
 
-    if (!senderName || !message || !chatId || !chatName) {
+    if (!senderName || !message || !chatId || !chatName)
         return res.status(500).send("Incorrectly formatted request");
-    }
 
     const messageObj = {
         sender: senderName,
@@ -290,8 +290,10 @@ app.post('/sendMessage', bp.json(), (req, res) => {
         { returnNewDocument: true }
     )
         .then(updatedDoc => {
-            for (const member of updatedDoc.value.members)
-                sendNotifs(member.tokens, chatName, `${senderName}: ${message}`, expoServer)
+            for (const member of updatedDoc.value.members) {
+                if (member.name != senderName)
+                    sendNotifs(member.tokens, chatName, `${senderName}: ${message}`, expoServer)
+            }
         })
     res.send("OK")
 })
@@ -328,6 +330,8 @@ app.post('/friendReq', bp.json(), async (req, res) => {
             `${senderName} sent you a friend request`,
             expoServer
         )
+
+        handler.sendUserEvent(req.body.receiver, "notificationsUpdated");
     } else {
         userCollection.updateOne(
             { "_id": new ObjectId(receiverId) },
@@ -430,7 +434,7 @@ app.post('/inviteFriend', bp.json(), (req, res) => {
                 expoServer
             )
         })
-
+    handler.sendUserEvent(req.body.friend, "notificationsUpdated");
     res.send("OK")
 })
 
@@ -446,7 +450,6 @@ app.post('/populateFriends', bp.json(), async (req, res) => {
     const friendDocs = await friendCursor.toArray();
 
     for (const friendDoc of await friendDocs) {
-        console.log(friendDoc._id)
         userFriends.add(friendDoc._id);
         friendDoc.friends.forEach(id => {
             if (id != userId) {
@@ -476,8 +479,6 @@ app.post('/populateFriends', bp.json(), async (req, res) => {
         }
     })
 
-    console.log(acquaintanceOccurrences)
-
     // Store top 5 most occurring acquaintances and remove existing friends
     const topRec = Object.entries(acquaintanceOccurrences)
         .sort(([, a], [, b]) => a - b)
@@ -503,36 +504,16 @@ app.post('/addEventSuggestions', bp.json(), async (req, res) => {
     let organizerWeights = {};
     let attendeeEventWeights = {};
 
-    // Use user's accepted events to generate data
-    userDoc.acceptedEvents.forEach(event => {
-        // Find most accepted tags
-        event.tags.forEach(tag => {
-            const weight = 1 / event.tags.length;
-            const count = acceptedEventWeights[tag];
-            acceptedEventWeights[tag] = count ? count + weight : weight;
-        })
+    // Find most accepted tags
+    acceptedEventWeights = calculateTagWeights(await userDoc)
 
-        const count = organizerWeights[event.creator];
-        organizerWeights[event.creator] = count ? count + 1 : 1;
+    organizerWeights = calculateOrganizerWeights(await userDoc)
 
-        // Find most similar attended events by people who attended this event
-        event.attendees.forEach(attendee => {
-            userCollection.findOne({ "_id": attendee }, (err, attendeeDoc) => {
-                if (err) throw err
-                attendeeDoc.acceptedEvents.forEach(attEvent => {
-                    let match = 0;
-                    for (const tag of attEvent.tags)
-                        match += event.tags.includes(tag)
-                    if (match != 0) {
-                        let similarity = match / event.tags.length;
-                        attendeeEventWeights[attEvent._id] = similarity;
-                        console.log(attendeeEventWeights)
-                    }
-                })
-            })
-        })
-    })
-    res.send(attendeeEventWeights)
+    // Find most similar attended events by people who attended this event
+    attendeeEventWeights = await calculateAttendeeEventWeights(await userDoc, userCollection)
+
+    res.send(attendeeEventWeights);
+
 })
 
 /**
