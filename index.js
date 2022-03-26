@@ -635,7 +635,7 @@ app.post('/updateProfilePic', bp.json(), (req,res) => {
   const imgUrl = req.body.imgUrl;
   userCollection.updateOne(
       { "_id": userId },
-      { $set: { "profilePic": imageUrl } }
+      { $set: { "profilePic": imgUrl } }
   )
 });
 
