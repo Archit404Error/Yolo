@@ -5,6 +5,7 @@ import express, { query } from 'express';
 import nodeGeocoder from 'node-geocoder';
 
 import socketHandler from './socketHandler.js';
+import { calculateTagWeights, calculateOrganizerWeights, calculateAttendeeEventWeights } from './helperMethods.js';
 import { pointDist, sendNotifs } from './helperMethods.js';
 
 const app = express();
@@ -122,34 +123,33 @@ app.get('/searchSuggestions/:query', async (req, res) => {
     const nameIds = await userCollection.aggregate([
         {
             $match: {
-                "name": { $regex: `${req.params.query}`, $options:'i'  },
+                "name": { $regex: `${req.params.query}`, $options: 'i' },
             }
         },
         {
             $project: {
                 "_id": 1,
-                "username":1,
-                "name":1,
-                "profilePic":1
+                "username": 1,
+                "name": 1,
+                "profilePic": 1
             }
         }
     ]).toArray();
     const eventIds = await eventCollection.aggregate([
         {
             $match: {
-                "title": { $regex: `${req.params.query}`, $options:'i' }
+                "title": { $regex: `${req.params.query}`, $options: 'i' }
             }
         },
         {
             $project: {
                 "_id": 1,
-                "title":1,
-                "image":1,
-                "location":1
+                "title": 1,
+                "image": 1,
+                "location": 1
             }
         }
     ]).toArray();
-    console.log(eventIds)
     let returnArr = [...eventIds, ...nameIds]
     res.send(Array.from(returnArr));
 });
@@ -217,8 +217,8 @@ app.post('/create', bp.json(), (req, res) => {
     const title = req.body.title;
     const desc = req.body.description;
     const loc = req.body.location;
-    const startDate = req.body.startDate;
-    const endDate = req.body.endDate;
+    const startDate = new Date(req.body.startDate);
+    const endDate = new Date(req.body.endDate);
     const tags = req.body.tags.split("|");
     const other = req.body.other;
     const isPublic = req.body.public;
@@ -276,9 +276,8 @@ app.post('/sendMessage', bp.json(), (req, res) => {
     const chatId = req.body.chat;
     const chatName = req.body.title;
 
-    if (!senderName || !message || !chatId || !chatName) {
+    if (!senderName || !message || !chatId || !chatName)
         return res.status(500).send("Incorrectly formatted request");
-    }
 
     const messageObj = {
         sender: senderName,
@@ -291,8 +290,10 @@ app.post('/sendMessage', bp.json(), (req, res) => {
         { returnNewDocument: true }
     )
         .then(updatedDoc => {
-            for (const member of updatedDoc.value.members)
-                sendNotifs(member.tokens, chatName, `${senderName}: ${message}`, expoServer)
+            for (const member of updatedDoc.value.members) {
+                if (member.name != senderName)
+                    sendNotifs(member.tokens, chatName, `${senderName}: ${message}`, expoServer)
+            }
         })
     res.send("OK")
 })
@@ -329,6 +330,8 @@ app.post('/friendReq', bp.json(), async (req, res) => {
             `${senderName} sent you a friend request`,
             expoServer
         )
+
+        handler.sendUserEvent(req.body.receiver, "notificationsUpdated");
     } else {
         userCollection.updateOne(
             { "_id": new ObjectId(receiverId) },
@@ -431,7 +434,7 @@ app.post('/inviteFriend', bp.json(), (req, res) => {
                 expoServer
             )
         })
-
+    handler.sendUserEvent(req.body.friend, "notificationsUpdated");
     res.send("OK")
 })
 
@@ -460,37 +463,27 @@ app.post('/populateFriends', bp.json(), async (req, res) => {
         })
     }
 
-    const pastEventDetails = await userCollection.aggregate([
-        { $match: { "_id": new ObjectId(userId) } },
-        {
-            $lookup: {
-                from: "Events",
-                localField: "acceptedEvents",
-                foreignField: "id",
-                as: "eventDetails"
-            }
-        },
-        { $project: { "eventDetails": 1 } }
-    ]).eventDetails
-
-    for (const eventDoc of await pastEventDetails) {
-        eventDoc.attendees.forEach(id => {
-            if (id != userId) {
-                // Compute weight based on number of attendees of event
-                const weight = 1 / eventDoc.attendees.length;
-                if (acquaintanceOccurrences[id])
-                    acquaintanceOccurrences[id] += weight;
-                else
-                    acquaintanceOccurrences[id] = weight;
-            }
-        })
-    }
+    userCollection.findOne({ "_id": new ObjectId(userId) }, (err, res) => {
+        const pastEventDetails = res.acceptedEvents
+        for (const eventDoc of pastEventDetails) {
+            eventDoc.attendees.forEach(id => {
+                if (id != userId) {
+                    // Compute weight based on number of attendees of event
+                    const weight = 1 / eventDoc.attendees.length;
+                    if (acquaintanceOccurrences[id])
+                        acquaintanceOccurrences[id] += weight;
+                    else
+                        acquaintanceOccurrences[id] = weight;
+                }
+            })
+        }
+    })
 
     // Store top 5 most occurring acquaintances and remove existing friends
     const topRec = Object.entries(acquaintanceOccurrences)
         .sort(([, a], [, b]) => a - b)
         .map(freqArr => freqArr[0])
-        .filter(id => userFriends.has(id))
+        .filter(id => !userFriends.has(id))
         .filter((elem, index) => index < 5)
 
     userCollection.updateOne(
@@ -498,47 +491,31 @@ app.post('/populateFriends', bp.json(), async (req, res) => {
         { $set: { "friendRecommendations": topRec } }
     )
 
-    res.send("Populated")
+    res.send(topRec)
 })
 
 /**
  * Stores a user's event suggestions
  */
-app.post('/addEventSuggestions', async (req, res) => {
+app.post('/addEventSuggestions', bp.json(), async (req, res) => {
     const userId = req.body.user;
     const userDoc = await userCollection.findOne({ "_id": new ObjectId(userId) });
     let acceptedEventWeights = {};
     let organizerWeights = {};
     let attendeeEventWeights = {};
 
-    // Use user's accepted events to generate data
-    userDoc.acceptedEvents.forEach(event => {
-        // Find most accepted tags
-        event.tags.forEach(tag => {
-            const weight = 1 / event.tags.length;
-            const count = acceptedEventWeights[tag];
-            acceptedEventWeights[tag] = count ? count + weight : weight;
-        })
+    // Find most accepted tags
+    acceptedEventWeights = calculateTagWeights(await userDoc)
 
-        // Store most accepted orgs
-        if (event.organizer.isOrg) {
-            const count = organizerWeights[event.organizer];
-            organizerWeights[event.organizer] = count ? count + 1 : 1;
-        }
+    organizerWeights = calculateOrganizerWeights(await userDoc)
 
-        // Find most similar attended events by people who attended this event
-        event.attendees.forEach(attendee => {
-            attendee.acceptedEvents.forEach(attEvent => {
-                let match = 0;
-                for (const tag of attEvent.tags)
-                    match += event.tags.includes(tag)
-                if (match != 0) {
-                    attEvent.similarity = match / event.tags.length;
-                    attendeeEventWeights[attEvent._id] = attEvent;
-                }
-            })
-        })
-    })
+    // Find most similar attended events by people who attended this event
+    // attendeeEventWeights = await calculateAttendeeEventWeights(await userDoc, userCollection)
+
+
+
+    res.send(organizerWeights);
+
 })
 
 /**
