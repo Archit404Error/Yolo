@@ -217,8 +217,8 @@ app.post('/create', bp.json(), (req, res) => {
     const title = req.body.title;
     const desc = req.body.description;
     const loc = req.body.location;
-    const startDate = req.body.startDate;
-    const endDate = req.body.endDate;
+    const startDate = new Date(req.body.startDate);
+    const endDate = new Date(req.body.endDate);
     const tags = req.body.tags.split("|");
     const other = req.body.other;
     const isPublic = req.body.public;
@@ -510,9 +510,11 @@ app.post('/addEventSuggestions', bp.json(), async (req, res) => {
     organizerWeights = calculateOrganizerWeights(await userDoc)
 
     // Find most similar attended events by people who attended this event
-    attendeeEventWeights = await calculateAttendeeEventWeights(await userDoc, userCollection)
+    // attendeeEventWeights = await calculateAttendeeEventWeights(await userDoc, userCollection)
 
-    res.send(attendeeEventWeights);
+
+
+    res.send(organizerWeights);
 
 })
 
