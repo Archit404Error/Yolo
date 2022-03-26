@@ -637,6 +637,7 @@ app.post('/updateProfilePic', bp.json(), (req,res) => {
       { "_id": userId },
       { $set: { "profilePic": imgUrl } }
   )
+  res.send('success');
 });
 
 
