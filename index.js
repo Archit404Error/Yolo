@@ -659,6 +659,16 @@ app.post('/dummyEvents', bp.json(), (req, res) => {
     res.send("OK")
 })
 
+app.post('/updateProfilePic', bp.json(), (req,res) => {
+  const userId = new ObjectId(req.body.user);
+  const imgUrl = req.body.imgUrl;
+  userCollection.updateOne(
+      { "_id": userId },
+      { $set: { "profilePic": imgUrl } }
+  )
+  res.send('success');
+});
+
 
 
 app.use((req, res, next) => {
