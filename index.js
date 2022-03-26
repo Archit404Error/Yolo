@@ -439,7 +439,7 @@ app.post('/inviteFriend', bp.json(), (req, res) => {
 })
 
 /**
- * A resource-heavy time consuming friend suggestion algorithm
+ * An algorithm to populate friend suggestions
  */
 app.post('/populateFriends', bp.json(), async (req, res) => {
     const userId = req.body.user;
@@ -500,22 +500,51 @@ app.post('/populateFriends', bp.json(), async (req, res) => {
 app.post('/addEventSuggestions', bp.json(), async (req, res) => {
     const userId = req.body.user;
     const userDoc = await userCollection.findOne({ "_id": new ObjectId(userId) });
-    let acceptedEventWeights = {};
+    let tagWeights = {};
     let organizerWeights = {};
     let attendeeEventWeights = {};
 
     // Find most accepted tags
-    acceptedEventWeights = calculateTagWeights(await userDoc)
+    tagWeights = calculateTagWeights(await userDoc)
 
     organizerWeights = calculateOrganizerWeights(await userDoc)
 
     // Find most similar attended events by people who attended this event
     // attendeeEventWeights = await calculateAttendeeEventWeights(await userDoc, userCollection)
 
+    let finalWeights = {}
 
+    await eventCollection.find({
+        _id: {
+            $nin: await userDoc.acceptedEvents.map(event => event._id)
+        },
+        endDate: {
+            $gte: new Date()
+        },
+    }).forEach(event => {
+        let score = 1;
+        if (event.creator in organizerWeights)
+            score += organizerWeights[event.creator]
+        for (const tag of event.tags) {
+            if (tag in tagWeights)
+                score += tagWeights.tag;
+        }
 
-    res.send(organizerWeights);
+        finalWeights[event._id] = score
+    })
 
+    // Store top 5 most occurring acquaintances and remove existing friends
+    const topRec = Object.entries(finalWeights)
+        .sort(([, a], [, b]) => a - b)
+        .map(freqArr => freqArr[0])
+        .filter((elem, index) => index < 5)
+
+    userCollection.updateOne(
+        { "_id": new ObjectId(userId) },
+        { $push: { "pendingEvents": topRec } }
+    )
+
+    res.send(topRec)
 })
 
 /**
