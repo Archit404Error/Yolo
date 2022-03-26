@@ -80,35 +80,38 @@ export const calculateOrganizerWeights = userDoc => {
     userDoc.acceptedEvents.forEach(event => {
         const count = organizerWeights[event.creator];
         organizerWeights[event.creator] = count ? count + 1 : 1;
-        organizerWeights[event.creator] /= userDoc.acceptedEvents.length;
+    })
+    Object.keys(organizerWeights).forEach(creator => {
+        organizerWeights[creator] /= userDoc.acceptedEvents.length;
     })
     return organizerWeights
 }
 
+
 export const calculateAttendeeEventWeights = async (userDoc, userCollection) => {
-    // let attendeeEventWeights = {}
-    // userDoc.acceptedEvents.forEach(event => {
-    //     event.attendees.forEach(async (attendee) => {
-    //         const attendeeDoc = await userCollection.findOne({ "_id": attendee })
+    /** Fix later
+    let attendeeEventWeights = {}
+    userDoc.acceptedEvents.forEach(event => {
+        event.attendees.forEach(async (attendee) => {
+            const attendeeDoc = await userCollection.findOne({ "_id": attendee })
 
-    //         attendeeDoc.acceptedEvents.forEach(attEvent => {
-    //             if (userDoc.acceptedEvents.includes(attEvent)) {
-    //                 console.log("skipped")
-    //                 return
-    //             }
-    //             let match = 0;
-    //             for (const tag of attEvent.tags)
-    //                 match += event.tags.includes(tag)
-    //             if (match != 0) {
-    //                 let similarity = match / event.tags.length;
-    //                 attendeeEventWeights[attEvent._id] = similarity;
-    //             }
-    //         })
-    //     })
-    // })
+            for (const attEvent of await attendeeDoc.acceptedEvents) {
+                if (!userDoc.acceptedEvents.includes(await attEvent)) {
+                    let match = 0;
+                    for (const tag of await attEvent.tags)
+                        match += event.tags.includes(tag)
+                    if (match != 0) {
+                        let similarity = match / event.tags.length;
+                        attendeeEventWeights[attEvent._id] = similarity;
+                    }
+                }
+            }
+        })
+    })
 
+    return attendeeEventWeights
+    */
 }
 
-// export const
 
 /** Event Suggestion functions end */
