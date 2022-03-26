@@ -119,22 +119,6 @@ app.get('/storyIds/:id', async (req, res) => {
  * Returns a set of relevant event and user ids when a user searches for an event or a user.
  */
 app.get('/searchSuggestions/:query', async (req, res) => {
-    // const userNameIds = await userCollection.aggregate([
-    //     {
-    //         $match: {
-    //             "username": { $regex: `${req.params.query}`, $options:'i'  },
-    //         }
-    //     },
-    //     {
-    //         $project: {
-    //             "_id": 1,
-    //             "username":1,
-    //             "name":1,
-    //             "profilePic":1
-    //         }
-    //     }
-    // ]).toArray();
-
     const nameIds = await userCollection.aggregate([
         {
             $match: {
@@ -668,6 +652,15 @@ app.post('/dummyEvents', bp.json(), (req, res) => {
     )
     res.send("OK")
 })
+
+app.post('/updateProfilePic', bp.json(), (req,res) => {
+  const userId = new ObjectId(req.body.user);
+  const imgUrl = req.body.imgUrl;
+  userCollection.updateOne(
+      { "_id": userId },
+      { $set: { "profilePic": imageUrl } }
+  )
+});
 
 
 
