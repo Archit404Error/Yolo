@@ -538,10 +538,11 @@ app.post('/addEventSuggestions', bp.json(), async (req, res) => {
         .sort(([, a], [, b]) => a - b)
         .map(freqArr => freqArr[0])
         .filter((elem, index) => index < 5)
+        .map(rec => new ObjectId(rec))
 
     userCollection.updateOne(
         { "_id": new ObjectId(userId) },
-        { $push: { "pendingEvents": topRec } }
+        { $push: { "pendingEvents": { $each: topRec } } }
     )
 
     res.send(topRec)
@@ -659,14 +660,14 @@ app.post('/dummyEvents', bp.json(), (req, res) => {
     res.send("OK")
 })
 
-app.post('/updateProfilePic', bp.json(), (req,res) => {
-  const userId = new ObjectId(req.body.user);
-  const imgUrl = req.body.imgUrl;
-  userCollection.updateOne(
-      { "_id": userId },
-      { $set: { "profilePic": imgUrl } }
-  )
-  res.send('success');
+app.post('/updateProfilePic', bp.json(), (req, res) => {
+    const userId = new ObjectId(req.body.user);
+    const imgUrl = req.body.imgUrl;
+    userCollection.updateOne(
+        { "_id": userId },
+        { $set: { "profilePic": imgUrl } }
+    )
+    res.send('success');
 });
 
 
