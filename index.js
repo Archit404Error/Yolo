@@ -580,6 +580,19 @@ app.post('/updateProfilePic', bp.json(), (req, res) => {
 });
 
 
+app.post('/uploadEventStory/', bp.json(), (req, res) => {
+    const eventId = new ObjectId(req.body.event);
+    const imageUrl = req.body.image;
+    eventCollection.insert(
+        { "_id": eventId },
+        { $push: { 
+            storyImages: imageUrl 
+            } 
+        }
+    )
+    res.send(imageUrl)
+})
+
 
 app.use((req, res, next) => {
     res.status(404).send('Unable to find the requested resource!');
