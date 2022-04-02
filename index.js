@@ -5,9 +5,12 @@ import express, { query } from 'express';
 import nodeGeocoder from 'node-geocoder';
 
 import socketHandler from './socketHandler.js';
-import { calculateTagWeights, calculateOrganizerWeights, calculateAttendeeEventWeights } from './helperMethods.js';
 import { pointDist, sendNotifs, hoursToMillis } from './helperMethods.js';
 import { populateFriends, populateAllFriends } from './suggestionEngines/friendSuggestionEngine.js';
+import {
+    populateEventSuggestions,
+    populateAllEventSuggestions
+} from './suggestionEngines/eventSuggestionEngine.js';
 
 const app = express();
 const locationFinder = nodeGeocoder({
@@ -416,8 +419,8 @@ app.post('/inviteFriend', bp.json(), (req, res) => {
     userCollection.findOneAndUpdate(
         { "_id": friendId },
         {
+            $addToSet: { "pendingEvents": eventId },
             $push: {
-                "pendingEvents": eventId,
                 "notifications": {
                     type: "invite",
                     sender: senderId,
@@ -447,57 +450,11 @@ app.post('/populateFriends', bp.json(), async (req, res) =>
 )
 
 /**
- * Stores a user's event suggestions
+ * An endpoint to populate event suggestions
  */
 app.post('/addEventSuggestions', bp.json(), async (req, res) => {
     const userId = req.body.user;
-    const userDoc = await userCollection.findOne({ "_id": new ObjectId(userId) });
-    let tagWeights = {};
-    let organizerWeights = {};
-    let attendeeEventWeights = {};
-
-    // Find most accepted tags
-    tagWeights = calculateTagWeights(await userDoc)
-
-    organizerWeights = calculateOrganizerWeights(await userDoc)
-
-    // Find most similar attended events by people who attended this event
-    // attendeeEventWeights = await calculateAttendeeEventWeights(await userDoc, userCollection)
-
-    let finalWeights = {}
-
-    await eventCollection.find({
-        _id: {
-            $nin: await userDoc.acceptedEvents.map(event => event._id)
-        },
-        endDate: {
-            $gte: new Date()
-        },
-    }).forEach(event => {
-        let score = 1;
-        if (event.creator in organizerWeights)
-            score += organizerWeights[event.creator]
-        for (const tag of event.tags) {
-            if (tag in tagWeights)
-                score += tagWeights.tag;
-        }
-
-        finalWeights[event._id] = score
-    })
-
-    // Store top 5 most occurring acquaintances and remove existing friends
-    const topRec = Object.entries(finalWeights)
-        .sort(([, a], [, b]) => a - b)
-        .map(freqArr => freqArr[0])
-        .filter((elem, index) => index < 5)
-        .map(rec => new ObjectId(rec))
-
-    userCollection.updateOne(
-        { "_id": new ObjectId(userId) },
-        { $push: { "pendingEvents": { $each: topRec } } }
-    )
-
-    res.send(topRec)
+    res.send(await populateEventSuggestions(userCollection, eventCollection, new ObjectId(userId)))
 })
 
 /**
@@ -637,6 +594,7 @@ const server = app.listen(process.env.PORT || 8080, () => {
         eventCollection = db.collection("Events");
         userCollection = db.collection("Users");
         setInterval(() => populateAllFriends(userCollection), hoursToMillis(3))
+        setInterval(() => populateAllEventSuggestions(userCollection, eventCollection), hoursToMillis(3))
         expoServer = new Expo({ accessToken: process.env.EXPO_TOKEN });
     })
 })

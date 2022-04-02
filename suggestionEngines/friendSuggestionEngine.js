@@ -1,4 +1,5 @@
 import { ObjectId } from 'mongodb';
+import { getAllUserIds } from './suggestionHelpers.js';
 
 /**
  * An endpoint to populate user friend suggestions
@@ -63,17 +64,8 @@ export const populateFriends = async (userCollection, userId) => {
  */
 export const populateAllFriends = async (userCollection) => {
     console.log("populating...")
-    const users = await userCollection.aggregate([
-        {
-            $match: {}
-        },
-        {
-            $project: {
-                "_id": 1
-            }
-        }
-    ]).toArray();
+    const users = await getAllUserIds(userCollection)
 
     for (const user of await users)
-        populateFriends(userCollection, user._id)
+        populateFriends(userCollection, user)
 }
