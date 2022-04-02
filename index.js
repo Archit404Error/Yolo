@@ -6,7 +6,8 @@ import nodeGeocoder from 'node-geocoder';
 
 import socketHandler from './socketHandler.js';
 import { calculateTagWeights, calculateOrganizerWeights, calculateAttendeeEventWeights } from './helperMethods.js';
-import { pointDist, sendNotifs } from './helperMethods.js';
+import { pointDist, sendNotifs, hoursToMillis } from './helperMethods.js';
+import { populateFriends, populateAllFriends } from './suggestionEngines/friendSuggestionEngine.js';
 
 const app = express();
 const locationFinder = nodeGeocoder({
@@ -439,60 +440,11 @@ app.post('/inviteFriend', bp.json(), (req, res) => {
 })
 
 /**
- * An algorithm to populate friend suggestions
+ * An endpoint to populate friend suggestions
  */
-app.post('/populateFriends', bp.json(), async (req, res) => {
-    const userId = req.body.user;
-    // an acquantaince is a friend of a friend
-    let acquaintanceOccurrences = {};
-    let userFriends = new Set();
-    const friendCursor = userCollection.find({ "friends": { $all: [new ObjectId(userId)] } })
-    const friendDocs = await friendCursor.toArray();
-
-    for (const friendDoc of await friendDocs) {
-        userFriends.add(friendDoc._id);
-        friendDoc.friends.forEach(id => {
-            if (id != userId) {
-                // Compute weighted importance of connection (edge weight in friend graph)
-                const weight = 1 / friendDoc.friends.length;
-                if (acquaintanceOccurrences[id])
-                    acquaintanceOccurrences[id] += weight;
-                else
-                    acquaintanceOccurrences[id] = weight;
-            }
-        })
-    }
-
-    userCollection.findOne({ "_id": new ObjectId(userId) }, (err, res) => {
-        const pastEventDetails = res.acceptedEvents
-        for (const eventDoc of pastEventDetails) {
-            eventDoc.attendees.forEach(id => {
-                if (id != userId) {
-                    // Compute weight based on number of attendees of event
-                    const weight = 1 / eventDoc.attendees.length;
-                    if (acquaintanceOccurrences[id])
-                        acquaintanceOccurrences[id] += weight;
-                    else
-                        acquaintanceOccurrences[id] = weight;
-                }
-            })
-        }
-    })
-
-    // Store top 5 most occurring acquaintances and remove existing friends
-    const topRec = Object.entries(acquaintanceOccurrences)
-        .sort(([, a], [, b]) => a - b)
-        .map(freqArr => freqArr[0])
-        .filter(id => !userFriends.has(id))
-        .filter((elem, index) => index < 5)
-
-    userCollection.updateOne(
-        { "_id": new ObjectId(userId) },
-        { $set: { "friendRecommendations": topRec } }
-    )
-
-    res.send(topRec)
-})
+app.post('/populateFriends', bp.json(), async (req, res) =>
+    res.send(await populateFriends(userCollection, new ObjectId(req.body.user)))
+)
 
 /**
  * Stores a user's event suggestions
@@ -684,6 +636,7 @@ const server = app.listen(process.env.PORT || 8080, () => {
         chatCollection = db.collection("Chats");
         eventCollection = db.collection("Events");
         userCollection = db.collection("Users");
+        setInterval(() => populateAllFriends(userCollection), hoursToMillis(3))
         expoServer = new Expo({ accessToken: process.env.EXPO_TOKEN });
     })
 })
