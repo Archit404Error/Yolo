@@ -684,6 +684,37 @@ app.post('/uploadEventStory/', bp.json(), (req, res) => {
     res.send(imageUrl)
 })
 
+app.post('/updateEvent/', bp.json(), (req, res) => {
+    const eventId = req.body.id
+    const creator = new ObjectId(req.body.creator);
+    const image = req.body.image;
+    const title = req.body.title;
+    const desc = req.body.description;
+    const loc = req.body.location;
+    const startDate = new Date(req.body.startDate);
+    const endDate = new Date(req.body.endDate);
+    const tags = req.body.tags.split("|");
+    const other = req.body.other;
+    const isPublic = req.body.public;
+    eventCollection.updateOne(
+        {"_id": eventId},
+        {
+            $set: {
+                "_id": eventId,
+                "creator": creator,
+                "image": image,
+                "title": title,
+                "description": desc,
+                "location": loc,
+                "startDate": startDate,
+                "endDate": endDate,
+                "tags": tags,
+                "public": isPublic
+            }
+        });
+    res.send(eventId)
+})
+
 
 app.use((req, res, next) => {
     res.status(404).send('Unable to find the requested resource!');
