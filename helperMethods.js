@@ -56,6 +56,19 @@ export const sendNotifs = (tokens, title, body, expoServer) => {
     catch (err) { console.log(err) }
 }
 
+/** 
+ * Calculates hours in milliseconds
+ * @param hours the amount of hours to be converted
+ * Inteded use: for suggestion algorithm intervals
+ */
+export const hoursToMillis = hours => hours * 3600000
+
+/** 
+ * Calculates days in milliseconds
+ * @param days the amount of days to be converted
+ */
+export const daysToMillis = days => hoursToMillis(days * 24)
+
 /** Event Suggestion functions start */
 
 export const calculateTagWeights = userDoc => {
