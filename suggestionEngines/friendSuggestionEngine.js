@@ -16,7 +16,7 @@ export const populateFriends = async (userCollection, userId) => {
     for (const friendDoc of await friendDocs) {
         userFriends.add(friendDoc._id);
         friendDoc.friends.forEach(id => {
-            if (id != userId) {
+            if (!id.equals(userId)) {
                 // Compute weighted importance of connection (edge weight in friend graph)
                 const weight = 1 / friendDoc.friends.length;
                 if (acquaintanceOccurrences[id])
@@ -31,7 +31,7 @@ export const populateFriends = async (userCollection, userId) => {
         const pastEventDetails = res.acceptedEvents
         for (const eventDoc of pastEventDetails) {
             eventDoc.attendees.forEach(id => {
-                if (id != userId) {
+                if (!id.equals(userId)) {
                     // Compute weight based on number of attendees of event
                     const weight = 1 / eventDoc.attendees.length;
                     if (acquaintanceOccurrences[id])
@@ -43,12 +43,17 @@ export const populateFriends = async (userCollection, userId) => {
         }
     })
 
+    console.log(userFriends)
+    console.log(acquaintanceOccurrences)
+
     // Store top 5 most occurring acquaintances and remove existing friends
     const topRec = Object.entries(acquaintanceOccurrences)
         .sort(([, a], [, b]) => a - b)
-        .map(freqArr => freqArr[0])
+        .map(freqArr => new ObjectId(freqArr[0]))
         .filter(id => !userFriends.has(id))
         .filter((_, index) => index < 5)
+
+    console.log(topRec)
 
     userCollection.updateOne(
         { "_id": new ObjectId(userId) },
