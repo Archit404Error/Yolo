@@ -121,6 +121,15 @@ app.get('/storyIds/:id', async (req, res) => {
 })
 
 /**
+ * Returns a user's upcoming events
+ */
+app.get('/upcomingEvents/:id', async (req, res) => {
+    const user = new ObjectId(req.params.id)
+    const accepted = (await userCollection.findOne({ "_id": user })).acceptedEvents
+    res.json((await accepted).filter(event => new Date(event.startDate) > new Date()))
+})
+
+/**
  * Returns a set of relevant event and user ids when a user searches for an event or a user.
  */
 app.get('/searchSuggestions/:query', async (req, res) => {
@@ -585,9 +594,10 @@ app.post('/uploadEventStory/', bp.json(), (req, res) => {
     const imageUrl = req.body.image;
     eventCollection.insert(
         { "_id": eventId },
-        { $push: { 
-            storyImages: imageUrl 
-            } 
+        {
+            $push: {
+                storyImages: imageUrl
+            }
         }
     )
     res.send(imageUrl)
@@ -606,7 +616,7 @@ app.post('/updateEvent/', bp.json(), (req, res) => {
     const other = req.body.other;
     const isPublic = req.body.public;
     eventCollection.updateOne(
-        {"_id": eventId},
+        { "_id": eventId },
         {
             $set: {
                 "_id": eventId,
