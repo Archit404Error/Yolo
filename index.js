@@ -126,7 +126,10 @@ app.get('/storyIds/:id', async (req, res) => {
 app.get('/upcomingEvents/:id', async (req, res) => {
     const user = new ObjectId(req.params.id)
     const accepted = (await userCollection.findOne({ "_id": user })).acceptedEvents
-    res.json((await accepted).filter(event => new Date(event.startDate) > new Date()))
+    res.json((await accepted)
+        .filter(event => new Date(event.startDate) > new Date())
+        .sort((fst, snd) => new Date(fst.startDate) - new Date(snd.startDate))
+    )
 })
 
 /**
