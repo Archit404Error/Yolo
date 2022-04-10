@@ -188,27 +188,34 @@ app.post('/auth', bp.json(), (req, res) => {
 /**
  * Inserts a new user into the DB
  */
-app.post('/register', bp.json(), (req, res) => {
+app.post('/register', bp.json(), async (req, res) => {
     const username = req.body.username;
     const password = req.body.password;
     const name = req.body.name;
-    const userData = {
-        "_id": new ObjectId(),
-        "username": username,
-        "password": password,
-        "name": name,
-        "rejectedEvents": [],
-        "acceptedEvents": [],
-        "pendingEvents": [],
-        "chats": [],
-        "friends": [],
-        "notifications": [],
-        "profilePic": "https://firebasestorage.googleapis.com/v0/b/eventapp-73ba7.appspot.com/o/Profiles%2Fdefault_user.png?alt=media&token=c4f609d3-a714-4d70-8383-ac59368ac640",
-        "tokens": []
+
+    const exists = await userCollection.find({ "username": username }).count()
+
+    if (await exists == 0) {
+        const userData = {
+            "_id": new ObjectId(),
+            "username": username,
+            "password": password,
+            "name": name,
+            "rejectedEvents": [],
+            "acceptedEvents": [],
+            "pendingEvents": [],
+            "chats": [],
+            "friends": [],
+            "notifications": [],
+            "profilePic": "https://firebasestorage.googleapis.com/v0/b/eventapp-73ba7.appspot.com/o/Profiles%2Fdefault_user.png?alt=media&token=c4f609d3-a714-4d70-8383-ac59368ac640",
+            "tokens": []
+        }
+        userCollection.insertOne(userData)
+        // send data back to client to be stored
+        res.send(userData);
+    } else {
+        res.send("not allowed")
     }
-    userCollection.insertOne(userData)
-    // send data back to client to be stored
-    res.send(userData);
 })
 
 /**
