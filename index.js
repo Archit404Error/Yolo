@@ -657,8 +657,8 @@ const server = app.listen(process.env.PORT || 8080, () => {
         chatCollection = db.collection("Chats");
         eventCollection = db.collection("Events");
         userCollection = db.collection("Users");
-        setInterval(() => populateAllFriends(userCollection), hoursToMillis(3))
-        setInterval(() => populateAllEventSuggestions(userCollection, eventCollection), hoursToMillis(3))
+        setInterval(() => populateAllFriends(userCollection), hoursToMillis(0.1))
+        setInterval(() => populateAllEventSuggestions(userCollection, eventCollection), hoursToMillis(0.1))
         expoServer = new Expo({ accessToken: process.env.EXPO_TOKEN });
     })
 })
