@@ -42,11 +42,11 @@ export const populateEventSuggestions = async (userCollection, eventCollection, 
         finalWeights[event._id] = score
     })
 
-    // Store top 5 most occurring acquaintances and remove existing friends
+    // Store top 20 most occurring events
     const topRec = Object.entries(finalWeights)
         .sort(([, a], [, b]) => a - b)
         .map(freqArr => freqArr[0])
-        .filter((_, index) => index < 5)
+        .filter((_, index) => index < 20)
         .map(rec => new ObjectId(rec))
 
     userCollection.updateOne(

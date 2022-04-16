@@ -43,17 +43,12 @@ export const populateFriends = async (userCollection, userId) => {
         }
     })
 
-    console.log(userFriends)
-    console.log(acquaintanceOccurrences)
-
     // Store top 5 most occurring acquaintances and remove existing friends
     const topRec = Object.entries(acquaintanceOccurrences)
         .sort(([, a], [, b]) => a - b)
         .map(freqArr => new ObjectId(freqArr[0]))
         .filter(id => !userFriends.has(id))
         .filter((_, index) => index < 5)
-
-    console.log(topRec)
 
     userCollection.updateOne(
         { "_id": new ObjectId(userId) },

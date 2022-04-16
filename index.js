@@ -314,7 +314,7 @@ app.post('/sendMessage', bp.json(), (req, res) => {
     )
         .then(updatedDoc => {
             for (const member of updatedDoc.value.members) {
-                if (member.name != senderName)
+                if (member.username != senderName)
                     sendNotifs(member.tokens, chatName, `${senderName}: ${message}`, expoServer)
             }
         })
