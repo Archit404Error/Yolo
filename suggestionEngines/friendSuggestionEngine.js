@@ -44,11 +44,33 @@ export const populateFriends = async (userCollection, userId) => {
     })
 
     // Store top 5 most occurring acquaintances and remove existing friends
-    const topRec = Object.entries(acquaintanceOccurrences)
+    let topRec = Object.entries(acquaintanceOccurrences)
         .sort(([, a], [, b]) => a - b)
         .map(freqArr => new ObjectId(freqArr[0]))
         .filter(id => !userFriends.has(id))
         .filter((_, index) => index < 5)
+
+    if (topRec.length === 0) {
+        topRec = await userCollection.aggregate([
+            {
+                $match: {
+                    "friends": {
+                        $not: {
+                            $all: [new ObjectId(userId)]
+                        }
+                    }
+                }
+            },
+            {
+                $project: {
+                    "_id": 1,
+                }
+            },
+            {
+                $limit: 5
+            }
+        ]).toArray()
+    }
 
     userCollection.updateOne(
         { "_id": new ObjectId(userId) },
