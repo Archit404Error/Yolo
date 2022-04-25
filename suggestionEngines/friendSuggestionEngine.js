@@ -69,7 +69,9 @@ export const populateFriends = async (userCollection, userId) => {
             {
                 $limit: 5
             }
-        ]).toArray()
+        ])
+            .toArray()
+        topRec = topRec.map(data => data._id)
     }
 
     userCollection.updateOne(
