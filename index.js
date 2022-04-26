@@ -585,16 +585,49 @@ app.post('/uploadEventStory/', bp.json(), (req, res) => {
     const imageUrl = req.body.image;
     eventCollection.insert(
         { "_id": eventId },
-        { $push: { 
-            storyImages: imageUrl 
-            } 
+        {
+            $push: {
+                storyImages: imageUrl
+            }
         }
     )
     res.send(imageUrl)
 })
 
+app.post('/rejectAcceptedEvent/', bp.json(), async (req, res) => {
+    const eventId = new ObjectId(req.body.event);
+    const userId = new ObjectId(req.body.user);
+    const eventData = await eventCollection.findOne({ "_id": eventId })
+    try {
+        userCollection.updateOne(
+            { "_id": userId },
+            { $pull: { "acceptedEvents": await eventData } }
+        )
+        eventCollection.updateOne(
+            { "_id": eventId },
+            { $pull: { "attendees": userId } }
+        )
+        const userData = await userCollection.findOne(
+            { "_id": userId }
+        )
+        chatCollection.findOneAndUpdate(
+            { "event": eventId },
+            { $pull: { "members": await userData } }
+        )
+            .then(found => {
+                userCollection.updateOne(
+                    { "_id": userId },
+                    { $pull: { "chats": new ObjectId(found.value._id) } }
+                )
+                handler.sendUserEvent(req.body.user, "eventsUpdated");
+            })
+    } catch {
+        res.send("Error occurred.");
+    }
+    res.send(`Removed ${userId} from ${eventId}`)
+})
+
 app.post('/updateEvent/', bp.json(), (req, res) => {
-    const eventId = req.body.id
     const creator = new ObjectId(req.body.creator);
     const image = req.body.image;
     const title = req.body.title;
@@ -605,12 +638,13 @@ app.post('/updateEvent/', bp.json(), (req, res) => {
     const tags = req.body.tags.split("|");
     const other = req.body.other;
     const isPublic = req.body.public;
+    let longitude = 0;
+    let latitude = 0;
     eventCollection.updateOne(
-        {"_id": eventId},
+        { "_id": eventId },
         {
             $set: {
                 "_id": eventId,
-                "creator": creator,
                 "image": image,
                 "title": title,
                 "description": desc,
@@ -618,6 +652,12 @@ app.post('/updateEvent/', bp.json(), (req, res) => {
                 "startDate": startDate,
                 "endDate": endDate,
                 "tags": tags,
+                "latitude": latitude,
+                "longitude": longitude,
+                "other": other,
+                "attendees": [],
+                "viewers": [],
+                "rejecters": [],
                 "public": isPublic
             }
         });
