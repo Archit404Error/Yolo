@@ -551,6 +551,40 @@ app.post('/eventRSVP', bp.json(), async (req, res) => {
     res.send("OK")
 })
 
+app.post('/rejectAcceptedEvent/', bp.json(), async (req, res) => {
+    const eventId = new ObjectId(req.body.event);
+    const userId = new ObjectId(req.body.user);
+    const eventData = await eventCollection.findOne({ "_id": eventId })
+    try {
+        userCollection.updateOne(
+            { "_id": userId },
+            { $pull: { "acceptedEvents": await eventData } }
+        )
+        eventCollection.updateOne(
+            { "_id": eventId },
+            { $pull: { "attendees": userId } }
+        )
+        const userData = await userCollection.findOne(
+            { "_id": userId }
+        )
+        chatCollection.findOneAndUpdate(
+            { "event": eventId },
+            { $pull: { "members": await userData } }
+        )
+            .then(found => {
+                userCollection.updateOne(
+                    { "_id": userId },
+                    { $pull: { "chats": new ObjectId(found.value._id) } }
+                )
+                handler.sendUserEvent(req.body.user, "eventsUpdated");
+            })
+    } catch {
+        res.send("Error occurred.");
+    }
+    res.send(`Removed ${userId} from ${eventId}`)
+})
+
+
 /**
  * Uploads a users story image
  * Requires: user (String) and image (String) are supplied in the body of the request
