@@ -13,6 +13,13 @@ import {
 } from './suggestionEngines/eventSuggestionEngine.js';
 
 const app = express();
+
+// Error handling middleware
+app.use((err, req, res, next) => {
+    console.error(err.stack)
+    res.status(500).send('Internal Server Error')
+})
+
 const locationFinder = nodeGeocoder({
     provider: 'openstreetmap',
 })

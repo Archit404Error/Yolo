@@ -32,7 +32,7 @@ const sendNotifChunks = async (notifs, expoServer) => {
             // store tickets to check for notif status later
             tickets.push(...ticketChunk);
         } catch (err) {
-            res.status(500).send("Error while sending notif chunk");
+            console.log("Error while sending notif chunk");
         }
         console.log(tickets);
     }
