@@ -8,6 +8,7 @@ export default class {
 
     init() {
         this.io.on("connection", (socket) => {
+            console.log("🔌 Socket connected")
             // Join rooms based on user's Chat Ids
             socket.handshake.query.chatList.split(",").map(id => socket.join(id))
             // Join user id room to communicate updates to client app
