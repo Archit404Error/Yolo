@@ -1,8 +1,9 @@
 import { MongoClient, ObjectId } from 'mongodb';
 import { Expo } from 'expo-server-sdk';
 import bp from 'body-parser';
-import express, { query } from 'express';
+import express from 'express';
 import nodeGeocoder from 'node-geocoder';
+import isEqual from 'lodash';
 
 import socketHandler from './socketHandler.js';
 import { pointDist, sendNotifs, hoursToMillis } from './helperMethods.js';
@@ -377,6 +378,16 @@ app.post('/friendReq', bp.json(), async (req, res) => {
         )
     }
     res.send("OK")
+})
+
+/**
+ * Determines whether two users are friends or not
+ */
+app.post('/isFriend', bp.json(), async (req, res) => {
+    const firstUser = new ObjectId(req.body.user);
+    const secondUser = new ObjectId(req.body.toCheck);
+    const firstFriends = (await userCollection.findOne({ "_id": firstUser })).friends;
+    res.send(firstFriends.filter(obj => JSON.stringify(obj) == JSON.stringify(secondUser)).length > 0)
 })
 
 /**
