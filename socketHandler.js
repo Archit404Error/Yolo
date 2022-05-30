@@ -1,8 +1,12 @@
 import { Server } from 'socket.io';
+import { createAdapter } from '@socket.io/cluster-adapter';
+import { setupWorker } from '@socket.io/sticky';
 
 export default class {
     constructor(server) {
         this.io = new Server(server);
+        this.io.adapter(createAdapter())
+        setupWorker(this.io)
         this.init();
     }
 

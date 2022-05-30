@@ -1,7 +1,10 @@
 import cluster from "cluster";
+import { setupPrimary } from "@socket.io/cluster-adapter";
 import os from "os";
 import { runYoloBackend } from "./server.js";
 if (cluster.isPrimary) {
+    setupPrimary();
+
     let workers = os.cpus().length;
     console.log(`💻 Setting up ${workers} workers`)
     for (let i = 0; i < workers; i++) {
