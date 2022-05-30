@@ -5,11 +5,7 @@ import { runYoloBackend } from "./server.js";
 if (cluster.isPrimary) {
     setupPrimary();
 
-    let workers = os.cpus().length;
-    console.log(`💻 Setting up ${workers} workers`)
-    for (let i = 0; i < workers; i++) {
-        cluster.fork();
-    }
+    cluster.fork();
 
     cluster.on('online', worker => console.log(`🚨 Worker ${worker.process.pid} online`))
     cluster.on('exit', (worker, code, signal) => {
