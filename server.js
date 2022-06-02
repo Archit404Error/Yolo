@@ -378,10 +378,16 @@ export const runYoloBackend = () => {
      * Determines whether two users are friends or not
      */
     app.post('/isFriend', bp.json(), async (req, res) => {
-        const firstUser = new ObjectId(req.body.user);
-        const secondUser = new ObjectId(req.body.toCheck);
-        const firstFriends = (await userCollection.findOne({ "_id": firstUser })).friends;
-        res.send(firstFriends.filter(obj => JSON.stringify(obj) == JSON.stringify(secondUser)).length > 0)
+        const viewed = new ObjectId(req.body.viewed);
+        const viewer = new ObjectId(req.body.viewer);
+        const equalsViewer = obj => JSON.stringify(obj) == JSON.stringify(viewer);
+        const viewedRecord = (await userCollection.findOne({ "_id": viewed }));
+        const viewedFriends = (await viewedRecord).friends;
+        const isPending = (await viewedRecord).notifications
+            .filter(notif => notif.type == "friend" && equalsViewer(notif.sender))
+            .length > 0;
+        const isFriend = viewedFriends.filter(equalsViewer).length > 0;
+        res.send({ friend: isFriend, pending: isPending })
     })
 
     /**
@@ -692,7 +698,7 @@ export const runYoloBackend = () => {
 
     // Error handling middleware
     app.use((err, req, res, next) => {
-        console.error("An error occurred")
+        console.error(err.stack)
         res.status(500).send('Internal Server Error')
     })
 
