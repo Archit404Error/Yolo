@@ -438,6 +438,9 @@ export const runYoloBackend = () => {
                 `${receiverName} accepted your friend request`,
                 expoServer
             )
+
+            handler.sendUserEvent(req.body.sender, "notificationsUpdated");
+            handler.sendUserEvent(req.body.sender, "friendChange");
         }
         res.send("OK")
     })
