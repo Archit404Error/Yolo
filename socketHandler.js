@@ -11,7 +11,7 @@ export default class {
     }
 
     init() {
-        this.io.on("connection", (socket) => {
+        this.io.on("connection", socket => {
             console.log("🔌 Socket connected")
             // Join rooms based on user's Chat Ids
             socket.handshake.query.chatList.split(",").map(id => socket.join(id))
@@ -26,6 +26,14 @@ export default class {
             socket.on("joinRooms", (roomList) => {
                 // join all listed rooms (ignores rooms that this socket has already joined)
                 roomList.forEach(room => socket.join(room))
+            })
+
+            socket.on("appOpened", (user) => {
+                this.io.to(user).emit("appOpened")
+            })
+
+            socket.on("notificationsUpdated", (user) => {
+                this.io.to(user).emit("notificationsUpdated")
             })
 
             socket.on("disconnect", () => {
