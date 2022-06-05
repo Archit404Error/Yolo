@@ -441,6 +441,7 @@ export const runYoloBackend = () => {
 
             handler.sendUserEvent(req.body.sender, "notificationsUpdated");
             handler.sendUserEvent(req.body.sender, "friendChange");
+            handler.sendUserEvent(req.body.receiver, "friendChange");
         }
         res.send("OK")
     })
