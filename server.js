@@ -285,7 +285,8 @@ export const runYoloBackend = () => {
             "creator": creator,
             "event": eventId,
             "messages": [],
-            "members": []
+            "members": [],
+            "lastUpdate": Date.now()
         })
 
         res.send(eventId)
@@ -311,7 +312,10 @@ export const runYoloBackend = () => {
 
         chatCollection.findOneAndUpdate(
             { "_id": new ObjectId(chatId) },
-            { $push: { "messages": messageObj } },
+            {
+                $push: { "messages": messageObj },
+                $set: { "lastUpdate": Date.now(), "members.$[].read": false }
+            },
             { returnNewDocument: true }
         )
             .then(updatedDoc => {
@@ -320,6 +324,23 @@ export const runYoloBackend = () => {
                         sendNotifs(member.tokens, chatName, `${senderName}: ${message}`, expoServer)
                 }
             })
+        res.send("OK")
+    })
+
+    /**
+     * Marks a user as having read a chat
+     * Requires: user (String), and chat (String)
+     */
+    app.post('/chatRead', bp.json(), (req, res) => {
+        const userId = new ObjectId(req.body.user);
+        const chatId = new ObjectId(req.body.chat);
+
+        chatCollection.updateOne(
+            { "_id": chatId },
+            { $set: { "members.$[readMem].read": true } },
+            { arrayFilters: [{ "readMem._id": userId }] }
+        )
+
         res.send("OK")
     })
 
@@ -523,9 +544,10 @@ export const runYoloBackend = () => {
                 { $push: { "attendees": userId } }
             )
 
-            const userData = await userCollection.findOne(
-                { "_id": userId }
-            )
+            let userData = {
+                ... await userCollection.findOne({ "_id": userId }),
+                read: false
+            }
 
             chatCollection.findOneAndUpdate(
                 { "event": eventId },
