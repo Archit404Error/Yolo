@@ -712,7 +712,6 @@ export const runYoloBackend = () => {
         res.send('success');
     });
 
-
     app.post('/uploadEventStory', bp.json(), (req, res) => {
         const eventId = new ObjectId(req.body.event);
         const userId = new ObjectId(req.body.user);
@@ -732,6 +731,19 @@ export const runYoloBackend = () => {
             }
         )
         res.send(imageUrl)
+    })
+
+    app.post('/viewStoryImage', bp.json(), (req, res) => {
+        const userId = new ObjectId(req.body.user);
+        const eventId = new ObjectId(req.body.event);
+        const imageId = new ObjectId(req.body.image);
+
+        eventCollection.updateOne(
+            { "_id": eventId, "storyImages._id": imageId },
+            { $push: { "storyImages.$.viewers": userId } }
+        )
+
+        res.send("OK");
     })
 
     app.post('/updateEvent/', bp.json(), (req, res) => {
