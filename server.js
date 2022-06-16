@@ -122,6 +122,43 @@ export const runYoloBackend = () => {
         res.send(result);
     })
 
+    app.get('/eventStories/:id', async (req, res) => {
+        const userId = new ObjectId(req.params.id);
+
+        const resStories = await userCollection.aggregate([
+            {
+                $match: { "_id": userId }
+            },
+            {
+                $lookup: {
+                    from: 'Events',
+                    localField: 'acceptedEvents._id',
+                    foreignField: '_id',
+                    as: 'eventData'
+                }
+            },
+            {
+                $project: { "eventData.storyImages": 1 }
+            },
+            {
+                $unwind: { path: "$eventData" }
+            }
+        ]).toArray();
+
+        let stories = [];
+        resStories.forEach(event => {
+            let images = event.eventData.storyImages;
+            let data = {};
+            if (images) {
+                data.id = event._id
+                data.images = images;
+                stories.push(data);
+            }
+        });
+
+        res.send(stories);
+    })
+
     /**
      * Returns a user's upcoming events
      */
@@ -628,7 +665,6 @@ export const runYoloBackend = () => {
         res.send(`Removed ${userId} from ${eventId}`)
     })
 
-
     /**
      * Uploads a users story image
      * Requires: user (String) and image (String) are supplied in the body of the request
@@ -677,14 +713,21 @@ export const runYoloBackend = () => {
     });
 
 
-    app.post('/uploadEventStory/', bp.json(), (req, res) => {
+    app.post('/uploadEventStory', bp.json(), (req, res) => {
         const eventId = new ObjectId(req.body.event);
+        const userId = new ObjectId(req.body.user);
         const imageUrl = req.body.image;
-        eventCollection.insert(
+        eventCollection.updateOne(
             { "_id": eventId },
             {
                 $push: {
-                    storyImages: imageUrl
+                    storyImages: {
+                        _id: new ObjectId(),
+                        image: imageUrl,
+                        poster: userId,
+                        datePosted: new Date(),
+                        viewers: [],
+                    }
                 }
             }
         )
