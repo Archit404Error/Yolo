@@ -101,27 +101,8 @@ export const runYoloBackend = () => {
     })
 
     /**
-     * Returns a list consisting of ids of a user's friends who posted stories
+     * Returns a list of story ids by accepted event for user
      */
-    app.get('/storyIds/:id', async (req, res) => {
-        if (!req.params.id) return res.status(500).send("No id supplied!");
-        const result = await userCollection.aggregate([
-            {
-                $match: {
-                    "friends": { $all: [new ObjectId(req.params.id)] },
-                }
-            },
-            {
-                $project: {
-                    "_id": 1,
-                    "storyImage": { $ifNull: ["$storyImage", null] }
-                }
-            }
-        ]).toArray();
-        result.filter(elem => elem.storyImage != null);
-        res.send(result);
-    })
-
     app.get('/eventStories/:id', async (req, res) => {
         const userId = new ObjectId(req.params.id);
 
@@ -212,6 +193,25 @@ export const runYoloBackend = () => {
         let returnArr = [...eventIds, ...nameIds]
         res.send(Array.from(returnArr));
     });
+
+    /**
+     * Determines the user's "position" a given event story
+     * @return the index of first image in storyImages that has not been viewed, or -1 if all viewed
+     */
+    app.get('/storyPosition/:user/:event', async (req, res) => {
+        const userId = new ObjectId(req.params.user);
+        const eventId = new ObjectId(req.params.event);
+
+        const eventStories = (await eventCollection.findOne({ "_id": eventId })).storyImages;
+        eventStories.forEach((storyObj, index) => {
+            if (!storyObj.viewers.some(id => id.equals(userId))) {
+                res.send({ position: index });
+                return;
+            }
+        })
+
+        res.send({ position: -1 })
+    })
 
 
     /**
@@ -670,19 +670,6 @@ export const runYoloBackend = () => {
     })
 
     /**
-     * Uploads a users story image
-     * Requires: user (String) and image (String) are supplied in the body of the request
-     */
-    app.post('/uploadStory', bp.json(), (req, res) => {
-        const userId = new ObjectId(req.body.user);
-        const imageUrl = req.body.image;
-        userCollection.updateOne(
-            { "_id": userId },
-            { $set: { "storyImage": imageUrl } }
-        )
-    })
-
-    /**
      * Dummy endpoint used to repopulate pending events for given user when testing
      */
     app.post('/dummyEvents', bp.json(), (req, res) => {
@@ -716,7 +703,7 @@ export const runYoloBackend = () => {
         res.send('success');
     });
 
-    app.post('/uploadEventStory', bp.json(), (req, res) => {
+    app.post('/uploadStory', bp.json(), (req, res) => {
         const eventId = new ObjectId(req.body.event);
         const userId = new ObjectId(req.body.user);
         const imageUrl = req.body.image;
