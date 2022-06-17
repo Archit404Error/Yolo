@@ -138,7 +138,10 @@ export const runYoloBackend = () => {
                 }
             },
             {
-                $project: { "eventData.storyImages": 1 }
+                $project: {
+                    "eventData.storyImages": 1,
+                    "eventData.image": 1
+                }
             },
             {
                 $unwind: { path: "$eventData" }
@@ -150,8 +153,9 @@ export const runYoloBackend = () => {
             let images = event.eventData.storyImages;
             let data = {};
             if (images) {
-                data.id = event._id
-                data.images = images;
+                data.id = event._id;
+                data.preview = event.eventData.image;
+                data.storyImages = images;
                 stories.push(data);
             }
         });
