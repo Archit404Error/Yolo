@@ -121,7 +121,8 @@ export const runYoloBackend = () => {
             {
                 $project: {
                     "eventData.storyImages": 1,
-                    "eventData.image": 1
+                    "eventData.image": 1,
+                    "eventData._id": 1
                 }
             },
             {
@@ -134,7 +135,7 @@ export const runYoloBackend = () => {
             let images = event.eventData.storyImages;
             let data = {};
             if (images) {
-                data.id = event._id;
+                data.id = event.eventData._id;
                 data.preview = event.eventData.image;
                 data.storyImages = images;
                 stories.push(data);
