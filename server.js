@@ -742,8 +742,9 @@ export const runYoloBackend = () => {
             .then(response => {
                 const origEventDoc = response.value
                 if (origEventDoc.storyImages.length > 0) {
-                    for (const attendeeId of origEventDoc.attendees)
-                        handler.sendDataEvent(attendeeId, req.body.event, "existingStoryUpdate")
+                    for (const attendeeId of origEventDoc.attendees) {
+                        handler.sendDataEvent(attendeeId.toString(), req.body.event, "existingStoryUpdate")
+                    }
                 }
             })
         res.send(imageUrl)
