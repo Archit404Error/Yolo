@@ -770,25 +770,42 @@ export const runYoloBackend = () => {
         const title = req.body.title;
         const desc = req.body.description;
         const loc = req.body.location;
-        const startDate = new Date(req.body.startDate);
-        const endDate = new Date(req.body.endDate);
         const tags = req.body.tags.split("|");
         const other = req.body.other;
         const isPublic = req.body.public;
+        let updatedEvent = {}
+        if (req.body.startDate) {
+            updatedEvent["startDate"] = new Date(req.body.startDate);
+        }
+        if (req.body.endDate) {
+            updatedEvent["endDate"] = new Date(req.body.endDate)
+        }
+        if (image) {
+            updatedEvent["image"] = image
+        }
+        if (title) {
+            updatedEvent["title"] = title
+        }
+        if (desc) {
+            updatedEvent["description"] = desc
+        }
+        if (loc) {
+            updatedEvent["location"] = loc
+        }
+        if (other) {
+            updatedEvent["other"] = other
+        }
+        if (tags) {
+            updatedEvent["tags"] = tags
+        }
+        if (isPublic) {
+            updatedEvent["isPublic"] = isPublic
+        }
         eventCollection.updateOne(
             { "_id": eventId },
             {
                 $set: {
-                    "_id": eventId,
-                    "creator": creator,
-                    "image": image,
-                    "title": title,
-                    "description": desc,
-                    "location": loc,
-                    "startDate": startDate,
-                    "endDate": endDate,
-                    "tags": tags,
-                    "public": isPublic
+                    ...updatedEvent
                 }
             });
         res.send(eventId)
