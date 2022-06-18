@@ -195,6 +195,23 @@ export const runYoloBackend = () => {
         res.send(Array.from(returnArr));
     });
 
+    app.get('/eventStory/:event', async (req, res) => {
+        const eventId = new ObjectId(req.params.event)
+        const foundStory = await eventCollection.aggregate([
+            {
+                $match: { "_id": eventId }
+            },
+            {
+                $project: {
+                    "_id": 0,
+                    "storyImages": 1
+                }
+            }
+        ]).next()
+
+        res.send(await foundStory["storyImages"])
+    })
+
     /**
      * Determines the user's "position" a given event story
      * @return the index of first image in storyImages that has not been viewed, or -1 if all viewed
@@ -708,7 +725,7 @@ export const runYoloBackend = () => {
         const eventId = new ObjectId(req.body.event);
         const userId = new ObjectId(req.body.user);
         const imageUrl = req.body.image;
-        eventCollection.updateOne(
+        eventCollection.findOneAndUpdate(
             { "_id": eventId },
             {
                 $push: {
@@ -722,6 +739,13 @@ export const runYoloBackend = () => {
                 }
             }
         )
+            .then(response => {
+                const origEventDoc = response.value
+                if (origEventDoc.storyImages.length > 0) {
+                    for (const attendeeId of origEventDoc.attendees)
+                        handler.sendDataEvent(attendeeId, req.body.event, "existingStoryUpdate")
+                }
+            })
         res.send(imageUrl)
     })
 

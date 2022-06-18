@@ -50,4 +50,14 @@ export default class {
     sendUserEvent(id, event) {
         this.io.to(id).emit(event);
     }
+
+    /**
+     * Send user an event and data
+     * @param {String} id the user's id
+     * @param {any} data the data to send
+     * @param {String} event the event to emit
+     */
+    sendDataEvent(id, data, event) {
+        this.io.to(id).emit(event, data)
+    }
 }
