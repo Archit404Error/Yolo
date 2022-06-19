@@ -764,43 +764,33 @@ export const runYoloBackend = () => {
     })
 
     app.post('/updateEvent/', bp.json(), (req, res) => {
-        const eventId = req.body.id
+        const eventId = new ObjectId(req.body.id);
         const creator = new ObjectId(req.body.creator);
-        const image = req.body.image;
-        const title = req.body.title;
-        const desc = req.body.description;
-        const loc = req.body.location;
-        const tags = req.body.tags.split("|");
-        const other = req.body.other;
         const isPublic = req.body.public;
         let updatedEvent = {}
+
+        const optionalFields = ["image", "title", "description", "location", "tags", "other"]
+
+        for (const field of optionalFields) {
+            let fieldVal = req.body[field]
+            // Set updated event field if present
+            if (fieldVal) {
+                if (field === "tags")
+                    fieldVal = fieldVal.split("|")
+                updatedEvent[field] = fieldVal
+            }
+        }
+
         if (req.body.startDate) {
             updatedEvent["startDate"] = new Date(req.body.startDate);
         }
         if (req.body.endDate) {
             updatedEvent["endDate"] = new Date(req.body.endDate)
         }
-        if (image) {
-            updatedEvent["image"] = image
-        }
-        if (title) {
-            updatedEvent["title"] = title
-        }
-        if (desc) {
-            updatedEvent["description"] = desc
-        }
-        if (loc) {
-            updatedEvent["location"] = loc
-        }
-        if (other) {
-            updatedEvent["other"] = other
-        }
-        if (tags) {
-            updatedEvent["tags"] = tags
-        }
         if (isPublic) {
             updatedEvent["isPublic"] = isPublic
         }
+
         eventCollection.updateOne(
             { "_id": eventId },
             {
