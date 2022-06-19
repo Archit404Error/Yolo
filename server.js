@@ -764,31 +764,38 @@ export const runYoloBackend = () => {
     })
 
     app.post('/updateEvent/', bp.json(), (req, res) => {
-        const eventId = req.body.id
+        const eventId = new ObjectId(req.body.id);
         const creator = new ObjectId(req.body.creator);
-        const image = req.body.image;
-        const title = req.body.title;
-        const desc = req.body.description;
-        const loc = req.body.location;
-        const startDate = new Date(req.body.startDate);
-        const endDate = new Date(req.body.endDate);
-        const tags = req.body.tags.split("|");
-        const other = req.body.other;
         const isPublic = req.body.public;
+        let updatedEvent = {}
+
+        const optionalFields = ["image", "title", "description", "location", "tags", "other"]
+
+        for (const field of optionalFields) {
+            let fieldVal = req.body[field]
+            // Set updated event field if present
+            if (fieldVal) {
+                if (field === "tags")
+                    fieldVal = fieldVal.split("|")
+                updatedEvent[field] = fieldVal
+            }
+        }
+
+        if (req.body.startDate) {
+            updatedEvent["startDate"] = new Date(req.body.startDate);
+        }
+        if (req.body.endDate) {
+            updatedEvent["endDate"] = new Date(req.body.endDate)
+        }
+        if (isPublic) {
+            updatedEvent["isPublic"] = isPublic
+        }
+
         eventCollection.updateOne(
             { "_id": eventId },
             {
                 $set: {
-                    "_id": eventId,
-                    "creator": creator,
-                    "image": image,
-                    "title": title,
-                    "description": desc,
-                    "location": loc,
-                    "startDate": startDate,
-                    "endDate": endDate,
-                    "tags": tags,
-                    "public": isPublic
+                    ...updatedEvent
                 }
             });
         res.send(eventId)
