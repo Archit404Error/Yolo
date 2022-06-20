@@ -222,11 +222,13 @@ export const runYoloBackend = () => {
 
         const eventStories = (await eventCollection.findOne({ "_id": eventId })).storyImages;
         eventStories.forEach((storyObj, index) => {
-            if (!storyObj.viewers.some(id => id.equals(userId))) {
+            if (!res.headersSent && !storyObj.viewers.some(id => id.equals(userId))) {
                 res.send({ position: index });
-                return;
             }
         })
+
+        if (res.headersSent)
+            return
 
         res.send({ position: -1 })
     })
