@@ -721,6 +721,9 @@ export const runYoloBackend = () => {
         res.send('success');
     });
 
+    /**
+     * Uploads a story to a given event and sends socket notif to attendees
+     */
     app.post('/uploadStory', bp.json(), (req, res) => {
         const eventId = new ObjectId(req.body.event);
         const userId = new ObjectId(req.body.user);
@@ -741,10 +744,12 @@ export const runYoloBackend = () => {
         )
             .then(response => {
                 const origEventDoc = response.value
-                if (origEventDoc.storyImages.length > 0) {
-                    for (const attendeeId of origEventDoc.attendees) {
+                const isExisting = origEventDoc.storyImages.length > 0
+                for (const attendeeId of origEventDoc.attendees) {
+                    if (isExisting)
                         handler.sendDataEvent(attendeeId.toString(), req.body.event, "existingStoryUpdate")
-                    }
+                    else
+                        handler.sendUserEvent(attendeeId.toString(), "newStoryUpdate")
                 }
             })
         res.send(imageUrl)
