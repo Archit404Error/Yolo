@@ -746,12 +746,14 @@ export const runYoloBackend = () => {
         )
             .then(response => {
                 const origEventDoc = response.value
-                const isExisting = origEventDoc.storyImages.length > 0
+                const isExisting = origEventDoc.storyImages ? true : false
                 for (const attendeeId of origEventDoc.attendees) {
                     if (isExisting)
                         handler.sendDataEvent(attendeeId.toString(), req.body.event, "existingStoryUpdate")
-                    else
+                    else {
+                        console.log(attendeeId.toString())
                         handler.sendUserEvent(attendeeId.toString(), "newStoryUpdate")
+                    }
                 }
             })
         res.send(imageUrl)
