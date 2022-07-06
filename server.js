@@ -233,6 +233,18 @@ export const runYoloBackend = () => {
         res.send({ position: -1 })
     })
 
+    app.get('/reports', async (req, res) => {
+        const reports = await eventCollection.find(
+            { reports: { $exists: true } },
+            { reports: 1 }
+        ).toArray();
+
+        let aggrReports = [];
+        reports.forEach(report => aggrReports.push(...report.reports))
+
+        res.send(aggrReports)
+    })
+
 
     /**
      * Authenticates users by returning JSON data if auth suceeds, else returns empty response
@@ -810,6 +822,37 @@ export const runYoloBackend = () => {
                 }
             });
         res.send(eventId)
+    })
+
+    app.post("/report", bp.json(), (req, res) => {
+        const eventId = new ObjectId(req.body.event);
+        const userId = new ObjectId(req.body.user);
+        const reason = req.body.reason;
+        let report = {
+            "_id": new ObjectId(),
+            "user": userId,
+            "message": reason,
+            "time": new Date()
+        }
+
+        if (req.body.story)
+            report.story = new ObjectId(req.body.story);
+
+        eventCollection.updateOne(
+            { "_id": eventId },
+            { $push: { "reports": report } }
+        )
+        res.send("OK")
+    })
+
+    app.post("/deleteReport", bp.json(), (req, res) => {
+        const eventId = new ObjectId(req.body.event);
+        const reportId = new ObjectId(req.body.report);
+        eventCollection.updateOne(
+            { "_id": eventId },
+            { $pull: { "reports": { "_id": reportId } } }
+        )
+        res.send("OK")
     })
 
     // Error handling middleware
