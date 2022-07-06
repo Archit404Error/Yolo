@@ -69,6 +69,20 @@ export const hoursToMillis = hours => hours * 3600000
  */
 export const daysToMillis = days => hoursToMillis(days * 24)
 
+export const successJson = data => {
+    return {
+        status: "success",
+        data: data
+    }
+}
+
+export const errorJson = data => {
+    return {
+        status: "error",
+        data: data
+    }
+}
+
 /** Event Suggestion functions start */
 
 export const calculateTagWeights = userDoc => {

@@ -5,7 +5,7 @@ import express from 'express';
 import nodeGeocoder from 'node-geocoder';
 
 import socketHandler from './socketHandler.js';
-import { pointDist, sendNotifs, hoursToMillis } from './helperMethods.js';
+import { pointDist, sendNotifs, hoursToMillis, successJson, errorJson } from './helperMethods.js';
 import { populateFriends, populateAllFriends } from './suggestionEngines/friendSuggestionEngine.js';
 import {
     populateEventSuggestions,
@@ -297,7 +297,7 @@ export const runYoloBackend = () => {
     /**
      * Creates a new Event (and its corresponding chat)
      */
-    app.post('/create', bp.json(), (req, res) => {
+    app.post('/create', bp.json(), async (req, res) => {
         const creator = new ObjectId(req.body.creator);
         const image = req.body.image;
         const title = req.body.title;
@@ -315,42 +315,44 @@ export const runYoloBackend = () => {
 
         handler.sendUserEvent(req.body.creator, "userCreatedEvent");
 
-        locationFinder.geocode(loc)
-            .then(res => res[0])
-            .then(actualRes => {
-                longitude = actualRes.longitude;
-                latitude = actualRes.latitude;
-            })
-            .then(() => {
-                eventCollection.insertOne({
-                    "_id": eventId,
-                    "creator": creator,
-                    "image": image,
-                    "title": title,
-                    "description": desc,
-                    "location": loc,
-                    "startDate": startDate,
-                    "endDate": endDate,
-                    "tags": tags,
-                    "latitude": latitude,
-                    "longitude": longitude,
-                    "other": other,
-                    "attendees": [],
-                    "viewers": [],
-                    "rejecters": [],
-                    "public": isPublic
-                })
+        const result = await locationFinder.geocode(loc)
+        const actualRes = result[0]
+
+        if (actualRes) {
+            longitude = actualRes.longitude;
+            latitude = actualRes.latitude;
+
+            eventCollection.insertOne({
+                "_id": eventId,
+                "creator": creator,
+                "image": image,
+                "title": title,
+                "description": desc,
+                "location": loc,
+                "startDate": startDate,
+                "endDate": endDate,
+                "tags": tags,
+                "latitude": latitude,
+                "longitude": longitude,
+                "other": other,
+                "attendees": [],
+                "viewers": [],
+                "rejecters": [],
+                "public": isPublic
             })
 
-        chatCollection.insertOne({
-            "creator": creator,
-            "event": eventId,
-            "messages": [],
-            "members": [],
-            "lastUpdate": Date.now()
-        })
+            chatCollection.insertOne({
+                "creator": creator,
+                "event": eventId,
+                "messages": [],
+                "members": [],
+                "lastUpdate": Date.now()
+            })
 
-        res.send(eventId)
+            res.send(successJson(eventId))
+        } else {
+            res.send(errorJson("location"))
+        }
     })
 
     /**
