@@ -160,7 +160,7 @@ export const runYoloBackend = () => {
     /**
      * Returns a set of relevant event and user ids when a user searches for an event or a user.
      */
-    app.get('/searchSuggestions/:query', async (req, res) => {
+    app.get('/searchSuggestions/:userId/:query', async (req, res) => {
         const nameIds = await userCollection.aggregate([
             {
                 $match: {
@@ -191,8 +191,12 @@ export const runYoloBackend = () => {
                 }
             }
         ]).toArray();
-        let returnArr = [...eventIds, ...nameIds]
-        res.send(Array.from(returnArr));
+
+        const blockedUsers = (await userCollection.findOne({ "_id": new ObjectId(req.params.userId) })).blockedUsers;
+
+        let returnArr = Array.from([...eventIds, ...nameIds])
+        returnArr = returnArr.filter(item => !blockedUsers.some(id => id.equals(item._id)))
+        res.send(returnArr);
     });
 
     app.get('/eventStory/:event', async (req, res) => {
@@ -283,6 +287,8 @@ export const runYoloBackend = () => {
                 "friends": [],
                 "notifications": [],
                 "profilePic": "https://firebasestorage.googleapis.com/v0/b/eventapp-73ba7.appspot.com/o/Profiles%2Fdefault_user.png?alt=media&token=c4f609d3-a714-4d70-8383-ac59368ac640",
+                "blockedUsers": [],
+                "blockedBy": [],
                 "tokens": []
             }
             userCollection.insertOne(userData)
@@ -852,6 +858,38 @@ export const runYoloBackend = () => {
             { "_id": eventId },
             { $pull: { "reports": { "_id": reportId } } }
         )
+        res.send("OK")
+    })
+
+    app.post("/blockUser", bp.json(), (req, res) => {
+        const userId = new ObjectId(req.body.user);
+        const blockedUserId = new ObjectId(req.body.blockedUser);
+        const isBlocking = req.body.isBlocking;
+        if (isBlocking) {
+            userCollection.updateOne(
+                { "_id": userId },
+                { $push: { "blockedUsers": blockedUserId } },
+                { $pull: { "friends": blockedUserId, "friendRecommendations": blockedUserId } }
+            )
+
+            userCollection.updateOne(
+                { "_id": blockedUserId },
+                { $push: { "blockedBy": userId } },
+                { $pull: { "friends": userId } }
+            )
+        } else {
+            userCollection.updateOne(
+                { "_id": userId },
+                { $pull: { "blockedUsers": blockedUserId } },
+                { $push: { "friends": blockedUserId } }
+            )
+
+            userCollection.updateOne(
+                { "_id": blockedUserId },
+                { $push: { "friends": userId } },
+                { $pull: { "blockedBy": userId } }
+            )
+        }
         res.send("OK")
     })
 

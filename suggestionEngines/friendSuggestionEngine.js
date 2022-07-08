@@ -17,12 +17,14 @@ export const populateFriends = async (userCollection, userId) => {
         userFriends.add(friendDoc._id);
         friendDoc.friends.forEach(id => {
             if (!id.equals(userId)) {
-                // Compute weighted importance of connection (edge weight in friend graph)
-                const weight = 1 / friendDoc.friends.length;
-                if (acquaintanceOccurrences[id])
-                    acquaintanceOccurrences[id] += weight;
-                else
-                    acquaintanceOccurrences[id] = weight;
+                if (friendDoc.blockedBy && !friendDoc.blockedBy.includes(id)) {
+                    // Compute weighted importance of connection (edge weight in friend graph)
+                    const weight = 1 / friendDoc.friends.length;
+                    if (acquaintanceOccurrences[id])
+                        acquaintanceOccurrences[id] += weight;
+                    else
+                        acquaintanceOccurrences[id] = weight;
+                }
             }
         })
     }
@@ -32,12 +34,14 @@ export const populateFriends = async (userCollection, userId) => {
         for (const eventDoc of pastEventDetails) {
             eventDoc.attendees.forEach(id => {
                 if (!id.equals(userId)) {
-                    // Compute weight based on number of attendees of event
-                    const weight = 1 / eventDoc.attendees.length;
-                    if (acquaintanceOccurrences[id])
-                        acquaintanceOccurrences[id] += weight;
-                    else
-                        acquaintanceOccurrences[id] = weight;
+                    if (res.blockedBy && !res.blockedBy.includes(id)) {
+                        // Compute weight based on number of attendees of event
+                        const weight = 1 / eventDoc.attendees.length;
+                        if (acquaintanceOccurrences[id])
+                            acquaintanceOccurrences[id] += weight;
+                        else
+                            acquaintanceOccurrences[id] = weight;
+                    }
                 }
             })
         }
