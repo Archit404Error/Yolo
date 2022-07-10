@@ -405,7 +405,7 @@ export const runYoloBackend = () => {
                         sendNotifs(member.tokens, chatName, `${senderName}: ${message}`, expoServer)
                 }
             })
-        res.send("OK")
+        res.send(successJson("OK"))
     })
 
     /**
@@ -422,7 +422,7 @@ export const runYoloBackend = () => {
             { arrayFilters: [{ "readMem._id": userId }] }
         )
 
-        res.send("OK")
+        res.send(successJson("OK"))
     })
 
     /**
@@ -473,7 +473,7 @@ export const runYoloBackend = () => {
                 }
             )
         }
-        res.send("OK")
+        res.send(successJson("OK"))
     })
 
     /**
@@ -545,7 +545,7 @@ export const runYoloBackend = () => {
             handler.sendUserEvent(req.body.sender, "friendChange");
             handler.sendUserEvent(req.body.receiver, "friendChange");
         }
-        res.send("OK")
+        res.send(successJson("OK"))
     })
 
     /**
@@ -582,7 +582,7 @@ export const runYoloBackend = () => {
                 )
             })
         handler.sendUserEvent(req.body.friend, "notificationsUpdated");
-        res.send("OK")
+        res.send(successJson("OK"))
     })
 
     /**
@@ -673,7 +673,7 @@ export const runYoloBackend = () => {
         const creator = (await eventCollection.findOne({ "_id": eventId })).creator;
         handler.sendUserEvent(await creator, "RSVPOcurred")
 
-        res.send("OK")
+        res.send(successJson("OK"))
     })
 
     app.post('/rejectAcceptedEvent/', bp.json(), async (req, res) => {
@@ -730,7 +730,7 @@ export const runYoloBackend = () => {
                 }
             }
         )
-        res.send("OK")
+        res.send(successJson("OK"))
     })
 
     app.post('/updateProfilePic', bp.json(), (req, res) => {
@@ -789,7 +789,7 @@ export const runYoloBackend = () => {
             { $push: { "storyImages.$.viewers": userId } }
         )
 
-        res.send("OK");
+        res.send(successJson("OK"));
     })
 
     app.post('/updateEvent/', bp.json(), (req, res) => {
@@ -848,7 +848,7 @@ export const runYoloBackend = () => {
             { "_id": eventId },
             { $push: { "reports": report } }
         )
-        res.send("OK")
+        res.send(successJson("OK"))
     })
 
     app.post("/deleteReport", bp.json(), (req, res) => {
@@ -858,7 +858,7 @@ export const runYoloBackend = () => {
             { "_id": eventId },
             { $pull: { "reports": { "_id": reportId } } }
         )
-        res.send("OK")
+        res.send(successJson("OK"))
     })
 
     app.post("/blockUser", bp.json(), (req, res) => {
@@ -868,29 +868,37 @@ export const runYoloBackend = () => {
         if (isBlocking) {
             userCollection.updateOne(
                 { "_id": userId },
-                { $push: { "blockedUsers": blockedUserId } },
-                { $pull: { "friends": blockedUserId, "friendRecommendations": blockedUserId } }
+                {
+                    $push: { "blockedUsers": blockedUserId },
+                    $pull: { "friends": blockedUserId, "friendRecommendations": blockedUserId }
+                },
             )
 
             userCollection.updateOne(
                 { "_id": blockedUserId },
-                { $push: { "blockedBy": userId } },
-                { $pull: { "friends": userId } }
+                {
+                    $push: { "blockedBy": userId },
+                    $pull: { "friends": userId }
+                }
             )
         } else {
             userCollection.updateOne(
                 { "_id": userId },
-                { $pull: { "blockedUsers": blockedUserId } },
-                { $push: { "friends": blockedUserId } }
+                {
+                    $pull: { "blockedUsers": blockedUserId },
+                    $push: { "friends": blockedUserId }
+                },
             )
 
             userCollection.updateOne(
                 { "_id": blockedUserId },
-                { $push: { "friends": userId } },
-                { $pull: { "blockedBy": userId } }
+                {
+                    $push: { "friends": userId },
+                    $pull: { "blockedBy": userId }
+                },
             )
         }
-        res.send("OK")
+        res.send(successJson("OK"))
     })
 
     // Error handling middleware
