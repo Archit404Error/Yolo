@@ -1,6 +1,7 @@
 import { MongoClient, ObjectId } from 'mongodb';
 import { Expo } from 'expo-server-sdk';
 import bp from 'body-parser';
+import cors from 'cors';
 import express from 'express';
 import nodeGeocoder from 'node-geocoder';
 
@@ -14,6 +15,7 @@ import {
 
 export const runYoloBackend = () => {
     const app = express();
+    app.use(cors())
 
     const locationFinder = nodeGeocoder({
         provider: 'openstreetmap',
@@ -240,11 +242,16 @@ export const runYoloBackend = () => {
     app.get('/reports', async (req, res) => {
         const reports = await eventCollection.find(
             { reports: { $exists: true } },
-            { reports: 1 }
+            { _id: 1, reports: 1 }
         ).toArray();
 
         let aggrReports = [];
-        reports.forEach(report => aggrReports.push(...report.reports))
+        reports.forEach(report => {
+            report.reports.forEach(rep => {
+                rep.event = report._id;
+                aggrReports.push(rep);
+            })
+        })
 
         res.send(aggrReports)
     })
