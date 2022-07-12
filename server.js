@@ -483,6 +483,23 @@ export const runYoloBackend = () => {
         res.send(successJson("OK"))
     })
 
+    app.post('/unfriend', bp.json(), (req, res) => {
+        const userId = new ObjectId(req.body.user);
+        const friendId = new ObjectId(req.body.friend);
+
+        userCollection.updateOne(
+            { "_id": userId },
+            { $pull: { "friends": friendId } }
+        )
+
+        userCollection.updateOne(
+            { "_id": friendId },
+            { $pull: { "friends": userId } }
+        )
+
+        res.send(successJson("OK"))
+    })
+
     /**
      * Determines whether two users are friends or not
      */
