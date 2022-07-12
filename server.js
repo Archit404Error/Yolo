@@ -908,6 +908,12 @@ export const runYoloBackend = () => {
         res.send(successJson("OK"))
     })
 
+    app.post('/deleteAccount', bp.json(), () => {
+        const userId = new ObjectId(req.body.user);
+        userCollection.deleteOne({ "_id": userId })
+        res.send(successJson("OK"))
+    })
+
     // Error handling middleware
     app.use((err, req, res, next) => {
         console.error(err.stack)
