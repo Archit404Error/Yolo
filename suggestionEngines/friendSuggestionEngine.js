@@ -54,7 +54,7 @@ export const populateFriends = async (userCollection, userId) => {
     let topRec = Object.entries(acquaintanceOccurrences)
         .sort(([, a], [, b]) => a - b)
         .map(freqArr => new ObjectId(freqArr[0]))
-        .filter(id => !userDoc.friends.includes(id))
+        .filter(id => !userDoc.friends.some(e => e.equals(id)))
         .filter((_, index) => index < 20)
 
     if (topRec.length === 0) {
