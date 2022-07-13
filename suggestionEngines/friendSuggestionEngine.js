@@ -9,15 +9,18 @@ import { getAllUserIds } from './suggestionHelpers.js';
  */
 export const populateFriends = async (userCollection, userId) => {
     let acquaintanceOccurrences = {};
-    let userFriends = new Set();
     const friendCursor = userCollection.find({ "friends": { $all: [userId] } })
     const friendDocs = await friendCursor.toArray();
+    const userDoc = await userCollection.findOne({ _id: userId });
 
     for (const friendDoc of await friendDocs) {
-        userFriends.add(friendDoc._id);
         friendDoc.friends.forEach(id => {
             if (!id.equals(userId)) {
-                if (friendDoc.blockedBy && !friendDoc.blockedBy.includes(id)) {
+
+                console.log(id)
+                console.log(userDoc.blockedUsers)
+                console.log(userDoc.blockedUsers.includes(id))
+                if (!userDoc.blockedUsers.some(e => e.equals(id))) {
                     // Compute weighted importance of connection (edge weight in friend graph)
                     const weight = 1 / friendDoc.friends.length;
                     if (acquaintanceOccurrences[id])
@@ -29,30 +32,30 @@ export const populateFriends = async (userCollection, userId) => {
         })
     }
 
-    userCollection.findOne({ "_id": new ObjectId(userId) }, (_, res) => {
-        const pastEventDetails = res.acceptedEvents
-        for (const eventDoc of pastEventDetails) {
-            eventDoc.attendees.forEach(id => {
-                if (!id.equals(userId)) {
-                    if (res.blockedBy && !res.blockedBy.includes(id)) {
-                        // Compute weight based on number of attendees of event
-                        const weight = 1 / eventDoc.attendees.length;
-                        if (acquaintanceOccurrences[id])
-                            acquaintanceOccurrences[id] += weight;
-                        else
-                            acquaintanceOccurrences[id] = weight;
-                    }
+    const pastEventDetails = userDoc.acceptedEvents
+    for (const eventDoc of pastEventDetails) {
+        eventDoc.attendees.forEach(id => {
+            if (!id.equals(userId)) {
+                if (!userDoc.blockedUsers.some(e => e.equals(id))) {
+                    // Compute weight based on number of attendees of event
+                    const weight = 1 / eventDoc.attendees.length;
+                    if (acquaintanceOccurrences[id])
+                        acquaintanceOccurrences[id] += weight;
+                    else
+                        acquaintanceOccurrences[id] = weight;
                 }
-            })
-        }
-    })
+            }
+        })
+    }
 
-    // Store top 5 most occurring acquaintances and remove existing friends
+    console.log(JSON.stringify(acquaintanceOccurrences))
+
+    // Store top 20 most occurring acquaintances and remove existing friends
     let topRec = Object.entries(acquaintanceOccurrences)
         .sort(([, a], [, b]) => a - b)
         .map(freqArr => new ObjectId(freqArr[0]))
-        .filter(id => !userFriends.has(id))
-        .filter((_, index) => index < 5)
+        .filter(id => !userDoc.friends.includes(id))
+        .filter((_, index) => index < 20)
 
     if (topRec.length === 0) {
         topRec = await userCollection.aggregate([
