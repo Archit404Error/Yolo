@@ -700,37 +700,55 @@ export const runYoloBackend = () => {
         res.send(successJson("OK"))
     })
 
-    app.post('/rejectAcceptedEvent/', bp.json(), async (req, res) => {
+    app.post('/undoAcceptEvent', bp.json(), async (req, res) => {
         const eventId = new ObjectId(req.body.event);
         const userId = new ObjectId(req.body.user);
-        const eventData = await eventCollection.findOne({ "_id": eventId })
-        try {
-            userCollection.updateOne(
-                { "_id": userId },
-                { $pull: { "acceptedEvents": await eventData } }
-            )
-            eventCollection.updateOne(
-                { "_id": eventId },
-                { $pull: { "attendees": userId } }
-            )
-            const userData = await userCollection.findOne(
-                { "_id": userId }
-            )
-            chatCollection.findOneAndUpdate(
-                { "event": eventId },
-                { $pull: { "members": await userData } }
-            )
-                .then(found => {
-                    userCollection.updateOne(
-                        { "_id": userId },
-                        { $pull: { "chats": new ObjectId(found.value._id) } }
-                    )
-                    handler.sendUserEvent(req.body.user, "eventsUpdated");
-                })
-        } catch {
-            res.send("Error occurred.");
-        }
-        res.send(`Removed ${userId} from ${eventId}`)
+
+        userCollection.updateOne(
+            { "_id": userId },
+            {
+                $pull: { "acceptedEvents": { "_id": eventId } },
+                $push: { "pendingEvents": eventId }
+            }
+        )
+
+        eventCollection.updateOne(
+            { "_id": eventId },
+            { $pull: { "attendees": userId } }
+        )
+
+        const chatDoc = await chatCollection.findOneAndUpdate(
+            { "event": eventId },
+            { $pull: { "members": { "_id": userId } } }
+        )
+
+        userCollection.updateOne(
+            { "_id": userId },
+            { $pull: { "chats": new ObjectId(chatDoc.value._id) } }
+        )
+
+        handler.sendUserEvent(req.body.user, "eventsUpdated");
+        res.send(successJson({ chatId: chatDoc.value._id }))
+    })
+
+    app.post('/undoRejectEvent', bp.json(), async (req, res) => {
+        const eventId = new ObjectId(req.body.event);
+        const userId = new ObjectId(req.body.user);
+
+        userCollection.updateOne(
+            { "_id": userId },
+            {
+                $pull: { "rejectedEvents": eventId },
+                $push: { "pendingEvents": eventId }
+            }
+        )
+
+        eventCollection.updateOne(
+            { "_id": eventId },
+            { $pull: { "rejecters": userId } }
+        )
+
+        res.send(successJson(eventId))
     })
 
     /**
@@ -910,14 +928,12 @@ export const runYoloBackend = () => {
                 { "_id": userId },
                 {
                     $pull: { "blockedUsers": blockedUserId },
-                    $push: { "friends": blockedUserId }
                 },
             )
 
             userCollection.updateOne(
                 { "_id": blockedUserId },
                 {
-                    $push: { "friends": userId },
                     $pull: { "blockedBy": userId }
                 },
             )

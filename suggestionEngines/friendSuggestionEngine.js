@@ -16,10 +16,6 @@ export const populateFriends = async (userCollection, userId) => {
     for (const friendDoc of await friendDocs) {
         friendDoc.friends.forEach(id => {
             if (!id.equals(userId)) {
-
-                console.log(id)
-                console.log(userDoc.blockedUsers)
-                console.log(userDoc.blockedUsers.includes(id))
                 if (!userDoc.blockedUsers.some(e => e.equals(id))) {
                     // Compute weighted importance of connection (edge weight in friend graph)
                     const weight = 1 / friendDoc.friends.length;

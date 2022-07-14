@@ -28,6 +28,10 @@ export default class {
                 roomList.forEach(room => socket.join(room))
             })
 
+            socket.on("leaveRoom", (room) => {
+                socket.leave(room)
+            })
+
             socket.on("appOpened", (user) => {
                 this.io.to(user).emit("appOpened")
             })
