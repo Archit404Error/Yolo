@@ -12,6 +12,7 @@ import {
     populateEventSuggestions,
     populateAllEventSuggestions
 } from './suggestionEngines/eventSuggestionEngine.js';
+import fetch from 'node-fetch';
 
 export const runYoloBackend = () => {
     const app = express();
@@ -333,38 +334,55 @@ export const runYoloBackend = () => {
         const tags = req.body.tags.split("|");
         const other = req.body.other;
         const isPublic = req.body.public;
-        let longitude = 0;
-        let latitude = 0;
 
         const eventId = new ObjectId();
 
         handler.sendUserEvent(req.body.creator, "userCreatedEvent");
 
-        const result = await locationFinder.geocode(loc)
-        const actualRes = result[0]
+        const eventData = {
+            "_id": eventId,
+            "creator": creator,
+            "image": image,
+            "title": title,
+            "description": desc,
+            "location": loc,
+            "startDate": startDate,
+            "endDate": endDate,
+            "tags": tags,
+            "other": other,
+            "attendees": [],
+            "viewers": [],
+            "rejecters": [],
+            "public": isPublic
+        }
 
-        if (actualRes) {
-            longitude = actualRes.longitude;
-            latitude = actualRes.latitude;
+        if (!req.body.latitude) {
+            const result = await locationFinder.geocode(loc)
+            const actualRes = result[0]
 
-            eventCollection.insertOne({
-                "_id": eventId,
-                "creator": creator,
-                "image": image,
-                "title": title,
-                "description": desc,
-                "location": loc,
-                "startDate": startDate,
-                "endDate": endDate,
-                "tags": tags,
-                "latitude": latitude,
-                "longitude": longitude,
-                "other": other,
-                "attendees": [],
-                "viewers": [],
-                "rejecters": [],
-                "public": isPublic
-            })
+            if (actualRes) {
+                eventData.longitude = actualRes.longitude;
+                eventData.latitude = actualRes.latitude;
+
+                eventCollection.insertOne(eventData)
+
+                chatCollection.insertOne({
+                    "creator": creator,
+                    "event": eventId,
+                    "messages": [],
+                    "members": [],
+                    "lastUpdate": Date.now()
+                })
+
+                res.send(successJson(eventId))
+            } else {
+                res.send(errorJson("location"))
+            }
+        } else {
+            eventData.longitude = req.body.longitude;
+            eventData.latitude = req.body.latitude;
+
+            eventCollection.insertOne(eventData)
 
             chatCollection.insertOne({
                 "creator": creator,
@@ -375,8 +393,6 @@ export const runYoloBackend = () => {
             })
 
             res.send(successJson(eventId))
-        } else {
-            res.send(errorJson("location"))
         }
     })
 
@@ -945,6 +961,67 @@ export const runYoloBackend = () => {
         const userId = new ObjectId(req.body.user);
         userCollection.deleteOne({ "_id": userId })
         res.send(successJson("OK"))
+    })
+
+    app.post('/ingestEvents', bp.json(), async (req, res) => {
+        const keyTopics = [
+            "music",
+            "sports",
+            "art",
+            "food",
+            "movies",
+            "theatre",
+            "comedy",
+            "dance",
+            "literature",
+            "computer science",
+            "engineering",
+            "history",
+            "geography",
+            "math",
+            "research",
+            "party",
+        ]
+
+        const results = []
+        let ingested = new Set()
+
+        for (const topic of keyTopics) {
+            const res = await fetch(`https://events.cornell.edu/api/2/events/search?search=${topic}&experience=inperson&distinct=true&pp=100&sort=date&days=365`)
+            const json = await res.json()
+            for (const obj of json.events) {
+                const event = obj.event
+
+                if (!event.geo.latitude || ingested.has(event.title)) continue
+                ingested.add(event.title)
+
+                const mongoData = {
+                    "creator": "62d23ebb09a8dd6c1fda7b3b",
+                    "image": event.photo_url,
+                    "title": event.title,
+                    "startDate": event.event_instances[0].event_instance.start,
+                    "endDate": event.event_instances[0].event_instance.end ? event.event_instances[0].event_instance.end : event.event_instances[0].event_instance.start,
+                    "location": event.location_name === "" ? (event.address === "" ? "Cornell University" : event.address) : event.location_name,
+                    "latitude": event.geo.latitude,
+                    "longitude": event.geo.longitude,
+                    "description": event.description_text,
+                    "tags": [...event.tags, topic].join("|"),
+                    "other": "",
+                    "public": true,
+                }
+
+                results.push(mongoData)
+                fetch("http://yolo-backend.herokuapp.com/create", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify(mongoData)
+                })
+            }
+        }
+
+        res.send(successJson(results))
     })
 
     // Error handling middleware

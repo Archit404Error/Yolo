@@ -10,6 +10,7 @@
     "express": "^4.17.2",
     "lodash": "^4.17.21",
     "mongodb": "^4.2.2",
+    "node-fetch": "^3.2.8",
     "node-geocoder": "^3.28.0",
     "nodemon": "^2.0.15",
     "os": "^0.1.2",
