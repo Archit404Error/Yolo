@@ -3,6 +3,9 @@ import { Expo } from 'expo-server-sdk';
 import bp from 'body-parser';
 import cors from 'cors';
 import express from 'express';
+import aws from 'aws-sdk';
+import multer from 'multer';
+import multerS3 from 'multer-s3';
 import nodeGeocoder from 'node-geocoder';
 
 import socketHandler from './socketHandler.js';
@@ -26,6 +29,26 @@ export const runYoloBackend = () => {
     const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
     var db, chatCollection, eventCollection, userCollection, expoServer;
     var handler;
+
+    const s3 = new aws.S3({
+        accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+        region: "us-east-1",
+    })
+
+    const uploader = multer({
+        storage: multerS3({
+            s3,
+            bucket: process.env.AWS_BUCKET,
+            acl: 'public-read',
+            metadata(req, file, cb) {
+                cb(null, { fieldName: file.fieldname });
+            },
+            key(req, file, cb) {
+                cb(null, Date.now().toString() + '.png');
+            }
+        })
+    })
 
     /**
      * Returns JSON data of event with a given id
@@ -255,6 +278,10 @@ export const runYoloBackend = () => {
         })
 
         res.send(aggrReports)
+    })
+
+    app.post('/uploadImage', uploader.single('photo'), (req, res) => {
+        res.json(req.file)
     })
 
 
@@ -638,6 +665,16 @@ export const runYoloBackend = () => {
     app.post('/addEventSuggestions', bp.json(), async (req, res) => {
         const userId = req.body.user;
         res.send(await populateEventSuggestions(userCollection, eventCollection, new ObjectId(userId)))
+    })
+
+    app.post('/deleteNotif', bp.json(), (req, res) => {
+        const userId = new ObjectId(req.body.user);
+        const notifId = new ObjectId(req.body.notif);
+        userCollection.updateOne(
+            { "_id": userId },
+            { $pull: { "notifications": { "_id": notifId } } }
+        )
+        res.send(successJson("OK"))
     })
 
     /**

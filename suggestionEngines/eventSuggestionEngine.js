@@ -9,10 +9,10 @@ export const populateEventSuggestions = async (userCollection, eventCollection, 
     let attendeeEventWeights = {};
 
     // Find most accepted tags
-    tagWeights = calculateTagWeights(await userDoc)
+    tagWeights = calculateTagWeights(userDoc)
 
     // Find most accepted organizers
-    organizerWeights = calculateOrganizerWeights(await userDoc)
+    organizerWeights = calculateOrganizerWeights(userDoc)
 
     // Find most similar attended events by people who attended this event
     // attendeeEventWeights = await calculateAttendeeEventWeights(await userDoc, userCollection)
