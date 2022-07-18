@@ -578,7 +578,6 @@ export const runYoloBackend = () => {
                 $pull:
                 {
                     "notifications": {
-                        _id: new ObjectId(),
                         type: "friend",
                         sender: senderId
                     }
