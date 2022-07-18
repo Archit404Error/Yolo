@@ -494,6 +494,7 @@ export const runYoloBackend = () => {
                     $push:
                     {
                         "notifications": {
+                            _id: new ObjectId(),
                             type: "friend",
                             sender: new ObjectId(senderId)
                         }
@@ -516,6 +517,7 @@ export const runYoloBackend = () => {
                     $pull:
                     {
                         "notifications": {
+                            _id: new ObjectId(),
                             type: "friend",
                             sender: new ObjectId(senderId)
                         }
@@ -576,6 +578,7 @@ export const runYoloBackend = () => {
                 $pull:
                 {
                     "notifications": {
+                        _id: new ObjectId(),
                         type: "friend",
                         sender: senderId
                     }
@@ -594,6 +597,7 @@ export const runYoloBackend = () => {
                     {
                         "friends": receiverId,
                         "notifications": {
+                            _id: new ObjectId(),
                             type: "newfriend",
                             friend: receiverId
                         }
@@ -632,6 +636,7 @@ export const runYoloBackend = () => {
                 $addToSet: { "pendingEvents": eventId },
                 $push: {
                     "notifications": {
+                        _id: new ObjectId(),
                         type: "invite",
                         sender: senderId,
                         senderName: senderName,
