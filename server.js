@@ -281,6 +281,7 @@ export const runYoloBackend = () => {
     })
 
     app.post('/uploadImage', uploader.single('photo'), (req, res) => {
+        console.log("upoading...")
         res.json(req.file)
     })
 
