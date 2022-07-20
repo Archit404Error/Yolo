@@ -48,7 +48,7 @@ export const runYoloBackend = () => {
                 cb(null, { fieldName: file.fieldname });
             },
             key(req, file, cb) {
-                cb(null, uuid() + file.originalname.split('.').pop());
+                cb(null, `${uuid()}.${file.originalname.split('.').pop()}`);
             }
         })
     })
