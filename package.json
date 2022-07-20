@@ -17,7 +17,8 @@
     "node-geocoder": "^3.28.0",
     "nodemon": "^2.0.15",
     "os": "^0.1.2",
-    "socket.io": "^4.4.0"
+    "socket.io": "^4.4.0",
+    "uuidv4": "^6.2.13"
   },
   "type": "module",
   "scripts": {

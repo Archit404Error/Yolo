@@ -16,6 +16,7 @@ import {
     populateAllEventSuggestions
 } from './suggestionEngines/eventSuggestionEngine.js';
 import fetch from 'node-fetch';
+import { uuid } from 'uuidv4';
 
 export const runYoloBackend = () => {
     const app = express();
@@ -37,6 +38,20 @@ export const runYoloBackend = () => {
     })
 
     const bucket = process.env.AWS_BUCKET;
+
+    const upload = multer({
+        storage: multerS3({
+            s3,
+            bucket: bucket,
+            acl: 'public-read',
+            metadata(req, file, cb) {
+                cb(null, { fieldName: file.fieldname });
+            },
+            key(req, file, cb) {
+                cb(null, uuid() + file.originalname.split('.').pop());
+            }
+        })
+    })
 
 
     /**
@@ -276,6 +291,14 @@ export const runYoloBackend = () => {
             Expires: 60
         });
         res.send(successJson(url));
+    })
+
+    /**
+     * Uploads image to S3
+     * Takes in form data with key photo and value being the file
+     */
+    app.post('/upload', upload.single('photo'), (req, res) => {
+        res.send(successJson(req.file.location))
     })
 
 
