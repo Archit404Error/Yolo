@@ -36,19 +36,8 @@ export const runYoloBackend = () => {
         region: "us-east-1",
     })
 
-    const uploader = multer({
-        storage: multerS3({
-            s3,
-            bucket: process.env.AWS_BUCKET,
-            acl: 'public-read',
-            metadata(req, file, cb) {
-                cb(null, { fieldName: file.fieldname });
-            },
-            key(req, file, cb) {
-                cb(null, Date.now().toString() + '.png');
-            }
-        })
-    })
+    const bucket = process.env.AWS_BUCKET;
+
 
     /**
      * Returns JSON data of event with a given id
@@ -280,9 +269,13 @@ export const runYoloBackend = () => {
         res.send(aggrReports)
     })
 
-    app.post('/uploadImage', uploader.single('photo'), (req, res) => {
-        console.log("upoading...")
-        res.json(req.file)
+    app.get('/signedUrl/:key', (req, res) => {
+        const url = s3.getSignedUrl('putObject', {
+            Bucket: bucket,
+            Key: req.params.key,
+            Expires: 60
+        });
+        res.send(url);
     })
 
 
