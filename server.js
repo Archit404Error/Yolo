@@ -272,7 +272,7 @@ export const runYoloBackend = () => {
     app.get('/signedUrl/:key', (req, res) => {
         const url = s3.getSignedUrl('putObject', {
             Bucket: bucket,
-            Key: req.params.key,
+            Key: `${bucket}/${req.params.key}`,
             Expires: 60
         });
         res.send(successJson(url));
