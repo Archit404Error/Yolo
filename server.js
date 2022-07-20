@@ -275,7 +275,7 @@ export const runYoloBackend = () => {
             Key: req.params.key,
             Expires: 60
         });
-        res.send(url);
+        res.send(successJson(url));
     })
 
 
