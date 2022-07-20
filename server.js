@@ -16,7 +16,7 @@ import {
     populateAllEventSuggestions
 } from './suggestionEngines/eventSuggestionEngine.js';
 import fetch from 'node-fetch';
-import { uuid } from 'uuidv4';
+import { v4 } from 'uuid';
 
 export const runYoloBackend = () => {
     const app = express();
@@ -34,7 +34,7 @@ export const runYoloBackend = () => {
     const s3 = new aws.S3({
         accessKeyId: process.env.AWS_ACCESS_KEY_ID,
         secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-        region: "us-east-1",
+        region: process.env.REGION,
     })
 
     const bucket = process.env.AWS_BUCKET;
@@ -48,7 +48,7 @@ export const runYoloBackend = () => {
                 cb(null, { fieldName: file.fieldname });
             },
             key(req, file, cb) {
-                cb(null, `${uuid()}.${file.originalname.split('.').pop()}`);
+                cb(null, `${v4()}.${file.originalname.split('.').pop()}`);
             }
         })
     })
@@ -298,7 +298,8 @@ export const runYoloBackend = () => {
      * Takes in form data with key photo and value being the file
      */
     app.post('/upload', upload.single('photo'), (req, res) => {
-        res.send(successJson(req.file.location))
+        let cdnUrl = req.file.location.replace(`${bucket}.s3.amazonaws.com`, process.env.CDN_DISTR)
+        res.send(successJson(cdnUrl))
     })
 
 
