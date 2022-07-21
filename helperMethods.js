@@ -116,16 +116,15 @@ export const calculateOrganizerWeights = userDoc => {
 
 
 export const calculateAttendeeEventWeights = async (userDoc, userCollection) => {
-    /** Fix later
     let attendeeEventWeights = {}
-    userDoc.acceptedEvents.forEach(event => {
-        event.attendees.forEach(async (attendee) => {
+    for (let event of userDoc.acceptedEvents) {
+        for (let attendee of event.attendees) {
             const attendeeDoc = await userCollection.findOne({ "_id": attendee })
 
-            for (const attEvent of await attendeeDoc.acceptedEvents) {
-                if (!userDoc.acceptedEvents.includes(await attEvent)) {
+            for (const attEvent of attendeeDoc.acceptedEvents) {
+                if (attEvent && !userDoc.acceptedEvents.includes(attEvent) && !userDoc.pendingEvents.includes(attEvent._id) && !!userDoc.rejectedEvents.includes(attEvent._id)) {
                     let match = 0;
-                    for (const tag of await attEvent.tags)
+                    for (const tag of attEvent.tags)
                         match += event.tags.includes(tag)
                     if (match != 0) {
                         let similarity = match / event.tags.length;
@@ -133,11 +132,10 @@ export const calculateAttendeeEventWeights = async (userDoc, userCollection) => 
                     }
                 }
             }
-        })
-    })
+        }
+    }
 
     return attendeeEventWeights
-    */
 }
 
 

@@ -1,5 +1,5 @@
 import { ObjectId } from "mongodb";
-import { calculateTagWeights, calculateOrganizerWeights } from "../helperMethods.js";
+import { calculateTagWeights, calculateOrganizerWeights, calculateAttendeeEventWeights } from "../helperMethods.js";
 import { getAllUserIds } from "./suggestionHelpers.js";
 
 export const populateEventSuggestions = async (userCollection, eventCollection, userId) => {
@@ -17,9 +17,9 @@ export const populateEventSuggestions = async (userCollection, eventCollection, 
     // Find most similar attended events by people who attended this event
     // attendeeEventWeights = await calculateAttendeeEventWeights(await userDoc, userCollection)
 
-    let finalWeights = {}
+    let finalWeights = await calculateAttendeeEventWeights(await userDoc, userCollection)
 
-    await eventCollection.find({
+    const potential = await eventCollection.find({
         _id: {
             $nin: ([
                 await userDoc.acceptedEvents.map(event => event._id),
@@ -30,7 +30,12 @@ export const populateEventSuggestions = async (userCollection, eventCollection, 
         endDate: {
             $gte: new Date()
         },
-    }).forEach(event => {
+    }).toArray()
+
+    console.log(potential)
+
+    potential.forEach(event => {
+        console.log(event)
         let score = 1;
         if (event.creator in organizerWeights)
             score += organizerWeights[event.creator]
