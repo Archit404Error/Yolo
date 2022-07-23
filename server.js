@@ -211,14 +211,6 @@ export const runYoloBackend = () => {
                 $match: {
                     "title": { $regex: `${req.params.query}`, $options: 'i' }
                 }
-            },
-            {
-                $project: {
-                    "_id": 1,
-                    "title": 1,
-                    "image": 1,
-                    "location": 1
-                }
             }
         ]).toArray();
 
