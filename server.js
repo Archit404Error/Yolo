@@ -339,7 +339,7 @@ export const runYoloBackend = () => {
                 "chats": [],
                 "friends": [],
                 "notifications": [],
-                "profilePic": "https://firebasestorage.googleapis.com/v0/b/eventapp-73ba7.appspot.com/o/Profiles%2Fdefault_user.png?alt=media&token=c4f609d3-a714-4d70-8383-ac59368ac640",
+                "profilePic": "https://d3ui31b996myii.cloudfront.net/default_user.png",
                 "blockedUsers": [],
                 "blockedBy": [],
                 "tokens": []
