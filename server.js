@@ -90,8 +90,12 @@ export const runYoloBackend = () => {
      */
     app.get('/userChats/:id', async (req, res) => {
         if (!req.params.id) return res.status(500).send("ID Error");
-        const found = chatCollection.find({ "members._id": new ObjectId(req.params.id) });
-        if ((await found.count()) == 0) return res.send([])
+        const found = chatCollection.find({
+            $or: [
+                { "members._id": new ObjectId(req.params.id) },
+                { "creator": new ObjectId(req.params.id) }
+            ]
+        });
         res.send(await found.toArray())
     })
 
@@ -371,6 +375,7 @@ export const runYoloBackend = () => {
         const tags = req.body.tags.split("|");
         const other = req.body.other;
         const isPublic = req.body.public;
+        const adminOnly = req.body.adminOnly;
 
         const eventId = new ObjectId();
 
@@ -426,6 +431,7 @@ export const runYoloBackend = () => {
                 "event": eventId,
                 "messages": [],
                 "members": [],
+                "adminOnly": adminOnly,
                 "lastUpdate": Date.now()
             })
 
