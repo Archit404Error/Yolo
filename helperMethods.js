@@ -121,6 +121,8 @@ export const calculateAttendeeEventWeights = async (userDoc, userCollection) => 
         for (let attendee of event.attendees) {
             const attendeeDoc = await userCollection.findOne({ "_id": attendee })
 
+            if (!attendeeDoc) continue;
+
             for (const attEvent of attendeeDoc.acceptedEvents) {
                 if (attEvent && !userDoc.acceptedEvents.includes(attEvent) && !userDoc.pendingEvents.includes(attEvent._id) && !!userDoc.rejectedEvents.includes(attEvent._id)) {
                     let match = 0;

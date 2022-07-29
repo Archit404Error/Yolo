@@ -90,12 +90,7 @@ export const runYoloBackend = () => {
      */
     app.get('/userChats/:id', async (req, res) => {
         if (!req.params.id) return res.status(500).send("ID Error");
-        const found = chatCollection.find({
-            $or: [
-                { "members._id": new ObjectId(req.params.id) },
-                { "creator._id": new ObjectId(req.params.id) }
-            ]
-        });
+        const found = chatCollection.find({ "members._id": new ObjectId(req.params.id) });
         res.send(await found.toArray())
     })
 
@@ -405,38 +400,34 @@ export const runYoloBackend = () => {
             if (actualRes) {
                 eventData.longitude = actualRes.longitude;
                 eventData.latitude = actualRes.latitude;
-
-                eventCollection.insertOne(eventData)
-
-                chatCollection.insertOne({
-                    "creator": creator,
-                    "event": eventId,
-                    "messages": [],
-                    "members": [],
-                    "lastUpdate": Date.now()
-                })
-
-                res.send(successJson(eventId))
             } else {
                 res.send(errorJson("location"))
+                return
             }
         } else {
             eventData.longitude = req.body.longitude;
             eventData.latitude = req.body.latitude;
-
-            eventCollection.insertOne(eventData)
-
-            chatCollection.insertOne({
-                "creator": creator,
-                "event": eventId,
-                "messages": [],
-                "members": [],
-                "adminOnly": adminOnly,
-                "lastUpdate": Date.now()
-            })
-
-            res.send(successJson(eventId))
         }
+
+        eventCollection.insertOne(eventData)
+
+        const chatId = new ObjectId()
+        chatCollection.insertOne({
+            "_id": chatId,
+            "creator": creator,
+            "event": eventId,
+            "messages": [],
+            "members": [],
+            "adminOnly": adminOnly,
+            "lastUpdate": Date.now()
+        })
+
+        userCollection.updateOne(
+            { "_id": new ObjectId(creator._id) },
+            { $push: { "chats": chatId } }
+        )
+
+        res.send(successJson(eventId))
     })
 
     /**
