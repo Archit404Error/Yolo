@@ -374,8 +374,6 @@ export const runYoloBackend = () => {
 
         const eventId = new ObjectId();
 
-        handler.sendUserEvent(req.body.creator._id, "userCreatedEvent");
-
         const eventData = {
             "_id": eventId,
             "creator": creator,
@@ -426,6 +424,8 @@ export const runYoloBackend = () => {
             { "_id": new ObjectId(creator._id) },
             { $push: { "chats": chatId } }
         )
+
+        handler.sendUserEvent(req.body.creator._id, "userCreatedEvent");
 
         res.send(successJson(eventId))
     })
