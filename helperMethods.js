@@ -105,11 +105,11 @@ export const calculateTagWeights = userDoc => {
 export const calculateOrganizerWeights = userDoc => {
     let organizerWeights = {}
     userDoc.acceptedEvents.forEach(event => {
-        const count = organizerWeights[event.creator];
-        organizerWeights[event.creator] = count ? count + 1 : 1;
+        const count = organizerWeights[event.creator._id];
+        organizerWeights[event.creator._id] = count ? count + 1 : 1;
     })
-    Object.keys(organizerWeights).forEach(creator => {
-        organizerWeights[creator] /= userDoc.acceptedEvents.length;
+    Object.keys(organizerWeights).forEach(orgId => {
+        organizerWeights[orgId] /= userDoc.acceptedEvents.length;
     })
     return organizerWeights
 }

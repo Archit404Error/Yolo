@@ -32,13 +32,11 @@ export const populateEventSuggestions = async (userCollection, eventCollection, 
         },
     }).toArray()
 
-    console.log(potential)
-
     potential.forEach(event => {
         console.log(event)
         let score = 1;
-        if (event.creator in organizerWeights)
-            score += organizerWeights[event.creator]
+        if (event.creator._id in organizerWeights)
+            score += organizerWeights[event.creator._id]
         for (const tag of event.tags) {
             if (tag in tagWeights)
                 score += tagWeights.tag;

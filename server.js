@@ -26,7 +26,7 @@ export const runYoloBackend = () => {
         provider: 'openstreetmap',
     })
 
-    const uri = process.env.MONGO_URI;
+    const uri = process.env.NODE_ENV === "PROD" ? process.env.PROD_URI : process.env.MONGO_URI;
     const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
     var db, chatCollection, eventCollection, userCollection, expoServer;
     var handler;
@@ -70,7 +70,7 @@ export const runYoloBackend = () => {
      */
     app.get('/createdEvents/:userId', async (req, res) => {
         if (!req.params.userId) return res.status(500).send("Incorrectly formatted request");
-        const eventDataList = await eventCollection.find({ "creator": new ObjectId(req.params.userId) }).toArray();
+        const eventDataList = await eventCollection.find({ "creator._id": new ObjectId(req.params.userId) }).toArray();
         res.send(eventDataList);
     })
 
@@ -93,7 +93,7 @@ export const runYoloBackend = () => {
         const found = chatCollection.find({
             $or: [
                 { "members._id": new ObjectId(req.params.id) },
-                { "creator": new ObjectId(req.params.id) }
+                { "creator._id": new ObjectId(req.params.id) }
             ]
         });
         res.send(await found.toArray())
@@ -365,7 +365,7 @@ export const runYoloBackend = () => {
      * Creates a new Event (and its corresponding chat)
      */
     app.post('/create', bp.json(), async (req, res) => {
-        const creator = new ObjectId(req.body.creator);
+        const creator = req.body.creator;
         const image = req.body.image;
         const title = req.body.title;
         const desc = req.body.description;
@@ -379,7 +379,7 @@ export const runYoloBackend = () => {
 
         const eventId = new ObjectId();
 
-        handler.sendUserEvent(req.body.creator, "userCreatedEvent");
+        handler.sendUserEvent(req.body.creator._id, "userCreatedEvent");
 
         const eventData = {
             "_id": eventId,
@@ -767,8 +767,8 @@ export const runYoloBackend = () => {
             { $pull: { "pendingEvents": eventId } }
         )
 
-        const creator = (await eventCollection.findOne({ "_id": eventId })).creator;
-        handler.sendUserEvent(await creator, "RSVPOcurred")
+        const creator = (await eventCollection.findOne({ "_id": eventId })).creator._id;
+        handler.sendUserEvent(creator, "RSVPOcurred")
 
         res.send(successJson("OK"))
     })
@@ -909,7 +909,6 @@ export const runYoloBackend = () => {
 
     app.post('/updateEvent/', bp.json(), (req, res) => {
         const eventId = new ObjectId(req.body.id);
-        const creator = new ObjectId(req.body.creator);
         const isPublic = req.body.public;
         let updatedEvent = {}
 
@@ -1042,6 +1041,7 @@ export const runYoloBackend = () => {
 
         const results = []
         let ingested = new Set()
+        const yoloTeamDetails = await userCollection.findOne({ "_id": new ObjectId("62d23ebb09a8dd6c1fda7b3b") })
 
         for (const topic of keyTopics) {
             const res = await fetch(`https://events.cornell.edu/api/2/events/search?search=${topic}&experience=inperson&distinct=true&pp=100&sort=date&days=365`)
@@ -1053,7 +1053,7 @@ export const runYoloBackend = () => {
                 ingested.add(event.title)
 
                 const mongoData = {
-                    "creator": "62d23ebb09a8dd6c1fda7b3b",
+                    "creator": yoloTeamDetails,
                     "image": event.photo_url,
                     "title": event.title,
                     "startDate": event.event_instances[0].event_instance.start,
