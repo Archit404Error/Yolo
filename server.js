@@ -361,6 +361,7 @@ export const runYoloBackend = () => {
      */
     app.post('/create', bp.json(), async (req, res) => {
         const creator = req.body.creator;
+        creator._id = new ObjectId(creator._id);
         const image = req.body.image;
         const title = req.body.title;
         const desc = req.body.description;
