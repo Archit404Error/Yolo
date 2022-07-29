@@ -445,6 +445,7 @@ export const runYoloBackend = () => {
      */
     app.post('/sendMessage', bp.json(), (req, res) => {
         const senderName = req.body.sender;
+        const senderPic = req.body.senderPic;
         const message = req.body.message;
         const chatId = req.body.chat;
         const chatName = req.body.title;
@@ -453,8 +454,10 @@ export const runYoloBackend = () => {
             return res.status(500).send("Incorrectly formatted request");
 
         const messageObj = {
+            _id: new ObjectId(),
             sender: senderName,
-            message: message
+            senderPic: senderPic,
+            message: message,
         }
 
         chatCollection.findOneAndUpdate(
