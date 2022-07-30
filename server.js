@@ -446,7 +446,7 @@ export const runYoloBackend = () => {
             { $push: { "chats": chatId } }
         )
 
-        handler.sendUserEvent(req.body.creatorId, "userCreatedEvent");
+        handler.sendUserEvent(creatorId, "userCreatedEvent");
 
         res.send(successJson(eventId))
     })
