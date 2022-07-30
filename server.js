@@ -143,6 +143,16 @@ export const runYoloBackend = () => {
             },
             {
                 $match: { "_id": new ObjectId(req.params.id) }
+            },
+            {
+                $project: {
+                    "creator._id": 1,
+                    "eventDetails": 1,
+                    "messages": 1,
+                    "lastUpdate": 1,
+                    "members": 1,
+                    "adminOnly": 1
+                }
             }
         ]).next();
         res.send(joined)
