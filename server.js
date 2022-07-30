@@ -90,8 +90,27 @@ export const runYoloBackend = () => {
      */
     app.get('/userChats/:id', async (req, res) => {
         if (!req.params.id) return res.status(500).send("ID Error");
-        const found = chatCollection.find({ "members._id": new ObjectId(req.params.id) });
-        res.send(await found.toArray())
+        const userId = new ObjectId(req.params.id);
+        const found = await chatCollection.aggregate([
+            {
+                $match: {
+                    $or: [
+                        { 'members._id': userId },
+                        { 'creator._id': userId }
+                    ]
+                }
+            },
+            {
+                $project: {
+                    'members._id': 1,
+                    'creator._id': 1,
+                    'event': 1,
+                    'messages': 1,
+                    'lastUpdate': 1
+                }
+            }
+        ]).toArray()
+        res.send(found)
     })
 
     /**
@@ -361,6 +380,7 @@ export const runYoloBackend = () => {
      */
     app.post('/create', bp.json(), async (req, res) => {
         const creator = req.body.creator;
+        const creatorId = req.body.creator._id;
         creator._id = new ObjectId(creator._id);
         const image = req.body.image;
         const title = req.body.title;
@@ -422,11 +442,11 @@ export const runYoloBackend = () => {
         })
 
         userCollection.updateOne(
-            { "_id": new ObjectId(creator._id) },
+            { "_id": new ObjectId(creatorId) },
             { $push: { "chats": chatId } }
         )
 
-        handler.sendUserEvent(req.body.creator._id, "userCreatedEvent");
+        handler.sendUserEvent(req.body.creatorId, "userCreatedEvent");
 
         res.send(successJson(eventId))
     })
