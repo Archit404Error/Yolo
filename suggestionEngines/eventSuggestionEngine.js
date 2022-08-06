@@ -3,6 +3,7 @@ import { calculateTagWeights, calculateOrganizerWeights, calculateAttendeeEventW
 import { getAllUserIds } from "./suggestionHelpers.js";
 
 export const populateEventSuggestions = async (userCollection, eventCollection, userId) => {
+    console.log("tst")
     const userDoc = await userCollection.findOne({ "_id": userId });
     let tagWeights = {};
     let organizerWeights = {};
@@ -10,14 +11,15 @@ export const populateEventSuggestions = async (userCollection, eventCollection, 
 
     // Find most accepted tags
     tagWeights = calculateTagWeights(userDoc)
+    console.log("calculated tag")
 
     // Find most accepted organizers
     organizerWeights = calculateOrganizerWeights(userDoc)
+    console.log("calculated org")
 
     // Find most similar attended events by people who attended this event
-    // attendeeEventWeights = await calculateAttendeeEventWeights(await userDoc, userCollection)
-
-    let finalWeights = await calculateAttendeeEventWeights(await userDoc, userCollection)
+    // let finalWeights = await calculateAttendeeEventWeights(await userDoc, userCollection)
+    let finalWeights = {}
 
     const potential = await eventCollection.find({
         _id: {
@@ -33,7 +35,6 @@ export const populateEventSuggestions = async (userCollection, eventCollection, 
     }).toArray()
 
     potential.forEach(event => {
-        console.log(event)
         let score = 1;
         if (event.creator._id in organizerWeights)
             score += organizerWeights[event.creator._id]
