@@ -3,7 +3,6 @@ import { calculateTagWeights, calculateOrganizerWeights, calculateAttendeeEventW
 import { getAllUserIds } from "./suggestionHelpers.js";
 
 export const populateEventSuggestions = async (userCollection, eventCollection, userId) => {
-    console.log("tst")
     const userDoc = await userCollection.findOne({ "_id": userId });
     let tagWeights = {};
     let organizerWeights = {};

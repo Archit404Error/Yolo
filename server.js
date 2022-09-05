@@ -592,14 +592,26 @@ export const runYoloBackend = () => {
     app.post('/isFriend', bp.json(), async (req, res) => {
         const viewed = new ObjectId(req.body.viewed);
         const viewer = new ObjectId(req.body.viewer);
-        const equalsViewer = obj => JSON.stringify(obj) == JSON.stringify(viewer);
-        const viewedRecord = (await userCollection.findOne({ "_id": viewed }));
-        const viewedFriends = (await viewedRecord).friends;
-        const isPending = (await viewedRecord).notifications
-            .filter(notif => notif.type == "friend" && equalsViewer(notif.sender))
-            .length > 0;
-        const isFriend = viewedFriends.filter(equalsViewer).length > 0;
-        res.send({ friend: isFriend, pending: isPending })
+
+        const viewedRecord = await userCollection.findOne({ "_id": viewed });
+        const viewerRecord = await userCollection.findOne({ "_id": viewer });
+
+        const objectEqual = (one, two) => JSON.stringify(one) == JSON.stringify(two);
+        const equalsViewer = obj => objectEqual(obj, viewer);
+        const equalsViewed = obj => objectEqual(obj, viewed);
+
+        if (viewedRecord.friends.some(equalsViewer)) {
+            res.send({ friend: true, pendingSent: false, pendingRecv: false })
+            return;
+        }
+
+        const userSentFriendReq = (isMatch, notifs) =>
+            notifs.some(notif => notif.type == "friend" && isMatch(notif.sender))
+
+        const isPendingSent = userSentFriendReq(equalsViewer, viewedRecord.notifications)
+        const isPendingRecv = userSentFriendReq(equalsViewed, viewerRecord.notifications)
+
+        res.send({ friend: false, pendingSent: isPendingSent, pendingRecv: isPendingRecv })
     })
 
     /**
