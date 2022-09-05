@@ -601,7 +601,7 @@ export const runYoloBackend = () => {
         const equalsViewed = obj => objectEqual(obj, viewed);
 
         if (viewedRecord.friends.some(equalsViewer)) {
-            res.send({ friend: true, pendingSent: false, pendingRecv: false })
+            res.send({ friend: true, pending: false, pendingRecv: false })
             return;
         }
 
@@ -611,7 +611,7 @@ export const runYoloBackend = () => {
         const isPendingSent = userSentFriendReq(equalsViewer, viewedRecord.notifications)
         const isPendingRecv = userSentFriendReq(equalsViewed, viewerRecord.notifications)
 
-        res.send({ friend: false, pendingSent: isPendingSent, pendingRecv: isPendingRecv })
+        res.send({ friend: false, pending: isPendingSent, pendingRecv: isPendingRecv })
     })
 
     /**
