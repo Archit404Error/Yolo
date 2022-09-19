@@ -455,9 +455,11 @@ export const runYoloBackend = () => {
             { "_id": new ObjectId(creatorId) },
             { $push: { "chats": chatId } }
         )
+        userCollection.find().forEach(user => {
+            handler.sendUserEvent(user._id, "userCreatedEvent");
+        })
 
         handler.sendUserEvent(creatorId, "userCreatedEvent");
-
         res.send(successJson(eventId))
     })
 
