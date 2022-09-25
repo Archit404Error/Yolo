@@ -101,7 +101,7 @@ export const populateAllFriends = async (userCollection) => {
  * Removes all stale events from suggestions and sorts chronologically
  */
 export const pruneAllEvents = async (userCollection, eventCollection) => {
-    const allUsers = await userCollection.find({ _id: new ObjectId("61c53d83d5a5c3d50bfca810") }).toArray()
+    const allUsers = await userCollection.find().toArray()
     for (const user of allUsers) {
         let pendingEvents = user.pendingEvents
         let idMap = {}
