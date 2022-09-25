@@ -96,3 +96,25 @@ export const populateAllFriends = async (userCollection) => {
     for (const user of await users)
         populateFriends(userCollection, user)
 }
+
+/**
+ * Removes all stale events from suggestions and sorts chronologically
+ */
+export const pruneAllEvents = async (userCollection, eventCollection) => {
+    const allUsers = await userCollection.find({ _id: new ObjectId("61c53d83d5a5c3d50bfca810") }).toArray()
+    for (const user of allUsers) {
+        let pendingEvents = user.pendingEvents
+        let idMap = {}
+        for (const eventId of pendingEvents) {
+            idMap[eventId] = await eventCollection.findOne({ _id: eventId })
+        }
+        pendingEvents = pendingEvents.filter(async (eventId) => {
+            return idMap[eventId].startDate > new Date()
+        })
+        pendingEvents.sort((fst, snd) => idMap[fst].startDate - idMap[snd].startDate)
+        userCollection.updateOne(
+            { "_id": user._id },
+            { $set: { "pendingEvents": pendingEvents } }
+        )
+    }
+}

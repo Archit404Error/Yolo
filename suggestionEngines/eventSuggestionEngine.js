@@ -54,7 +54,14 @@ export const populateEventSuggestions = async (userCollection, eventCollection, 
 
     userCollection.updateOne(
         { "_id": new ObjectId(userId) },
-        { $push: { "pendingEvents": { $each: topRec } } }
+        {
+            $push: {
+                "pendingEvents": {
+                    $each: topRec,
+                    $position: 0
+                }
+            }
+        }
     )
 
     return topRec

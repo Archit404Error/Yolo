@@ -38,7 +38,7 @@ const sendNotifChunks = async (notifs, expoServer) => {
     }
 }
 
-export const sendNotifs = (tokens, title, body, expoServer) => {
+export const sendNotifs = (tokens, title, body, expoServer, json = {}) => {
     try {
         let notifs = [];
         tokens.forEach(token => {
@@ -47,6 +47,7 @@ export const sendNotifs = (tokens, title, body, expoServer) => {
                 sound: 'default',
                 title: title,
                 body: body,
+                data: json
             })
         })
 
@@ -54,6 +55,13 @@ export const sendNotifs = (tokens, title, body, expoServer) => {
     }
     // Simply do nothing if the user has no tokens
     catch (err) { console.log(err) }
+}
+
+export const notifyAllUsers = async (userCollection, title, body, eventId, expoServer) => {
+    const users = await userCollection.find().toArray();
+    users.forEach(user => {
+        sendNotifs(user.tokens, title, body, expoServer, { url: `yolo://event/${eventId}` })
+    })
 }
 
 /** 

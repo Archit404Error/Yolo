@@ -9,8 +9,8 @@ import multerS3 from 'multer-s3';
 import nodeGeocoder from 'node-geocoder';
 
 import socketHandler from './socketHandler.js';
-import { pointDist, sendNotifs, hoursToMillis, successJson, errorJson } from './helperMethods.js';
-import { populateFriends, populateAllFriends } from './suggestionEngines/friendSuggestionEngine.js';
+import { pointDist, sendNotifs, hoursToMillis, successJson, errorJson, notifyAllUsers } from './helperMethods.js';
+import { populateFriends, populateAllFriends, pruneAllEvents } from './suggestionEngines/friendSuggestionEngine.js';
 import {
     populateEventSuggestions,
     populateAllEventSuggestions
@@ -457,6 +457,7 @@ export const runYoloBackend = () => {
         )
 
         handler.sendUserEvent(creatorId, "userCreatedEvent");
+        notifyAllUsers(userCollection, `🔥[New Event] ${title}🔥`, desc, eventId, expoServer)
 
         res.send(successJson(eventId))
     })
@@ -1136,6 +1137,7 @@ export const runYoloBackend = () => {
             chatCollection = db.collection("Chats");
             eventCollection = db.collection("Events");
             userCollection = db.collection("Users");
+            setInterval(() => pruneAllEvents(userCollection), hoursToMillis(0.1))
             setInterval(() => populateAllFriends(userCollection), hoursToMillis(0.1))
             setInterval(() => populateAllEventSuggestions(userCollection, eventCollection), hoursToMillis(0.1))
             expoServer = new Expo({ accessToken: process.env.EXPO_TOKEN });
