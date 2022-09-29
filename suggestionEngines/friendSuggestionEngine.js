@@ -105,16 +105,16 @@ export const pruneAllEvents = async (userCollection, eventCollection) => {
     for (const user of allUsers) {
         let pendingEvents = user.pendingEvents
         let idMap = {}
-        for (const eventId of pendingEvents) {
+
+        for (const eventId of pendingEvents)
             idMap[eventId] = await eventCollection.findOne({ _id: eventId })
-        }
-        pendingEvents = pendingEvents.filter(async (eventId) => {
-            return idMap[eventId].startDate > new Date()
-        })
+
+        pendingEvents = pendingEvents.filter(eventId => idMap[eventId].startDate > new Date())
         pendingEvents.sort((fst, snd) => idMap[fst].startDate - idMap[snd].startDate)
         userCollection.updateOne(
             { "_id": user._id },
             { $set: { "pendingEvents": pendingEvents } }
         )
+        console.log(`Successfully pruned ${user.username}`)
     }
 }
