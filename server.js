@@ -1137,7 +1137,7 @@ export const runYoloBackend = () => {
             chatCollection = db.collection("Chats");
             eventCollection = db.collection("Events");
             userCollection = db.collection("Users");
-            setInterval(() => pruneAllEvents(userCollection, eventCollection), hoursToMillis(0.01))
+            setInterval(() => pruneAllEvents(userCollection, eventCollection), hoursToMillis(0.1))
             setInterval(() => populateAllFriends(userCollection), hoursToMillis(0.1))
             setInterval(() => populateAllEventSuggestions(userCollection, eventCollection), hoursToMillis(0.1))
             expoServer = new Expo({ accessToken: process.env.EXPO_TOKEN });
